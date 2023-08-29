@@ -1,0 +1,15 @@
+/* Main body style*/
+body {
+	background: black;
+	color: white;
+	font-family: Verdana, Arial, sans-serif;
+}
+
+/* h1, h2, h3 Styles */
+h1 {
+	color: grey;
+	font-size: 42px;
+	font-family: Arial;
+	text-align: center;
+	text-shadow: 4px 4px 6px black, 0 0 45px red, 0 0 15px darkred;
+}
