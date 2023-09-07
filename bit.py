@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 # Global variable for database
-DB_NAME = "cmsc495.db"
+DB_NAME = "/home/ec2-user/CMSC-495-Project/cmsc495.db"
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
