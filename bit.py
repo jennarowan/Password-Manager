@@ -62,4 +62,4 @@ def nextPage():
 
 if __name__ == '__main__':
     create_db(bitwiz)
-    bitwiz.run(debug=True)
+    bitwiz.run()
