@@ -16,7 +16,7 @@ db = SQLAlchemy(bitwiz)
 
 def create_db(app):
     ''' Function that builds the database'''
-    if not path.exists('database/' + DB_NAME):
+    if not path.exists(DB_NAME):
         db.create_all(app=bitwiz)
 
 def currentTime():
