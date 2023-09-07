@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% for record in records %}
+    <div>
+        Full Name: {{ record.fullname }}<br>
+        Short Name: {{ record.shortname }}<br>
+        Password: {{ record.password }}<br>
+    </div>
+    <hr>
+{% endfor %}
+
+{% endblock %}
