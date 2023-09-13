@@ -4,9 +4,11 @@
 
 {% for record in records %}
     <div>
-        Full Name: {{ record.fullname }}<br>
-        Short Name: {{ record.shortname }}<br>
-        Password: {{ record.password }}<br>
+        Username: {{ record.username }}<br>
+        Password: {{ record.encryptedPassword }}<br>
+        Salt: {{ record.salt }}<br>
+        Security Question: {{ record.passwordRecoveryQuestion }}<br>
+        Security Answer: {{ record.passwordRecoveryAnswer }}<br>
     </div>
     <hr>
 {% endfor %}
