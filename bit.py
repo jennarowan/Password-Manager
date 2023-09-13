@@ -4,8 +4,9 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 # Global variable for database
-DB_NAME = "/home/ec2-user/CMSC-495-Project/cmsc495.db"
-#DB_NAME = "cmsc495.db" -- This is used when doing local testing.
+# BE SURE TO SWITCH THESE WHEN DOING LOCAL DEVELOPMENT VS. DEPLOYED VERSION
+#DB_NAME = "/home/ec2-user/CMSC-495-Project/cmsc495.db"
+DB_NAME = "cmsc495.db" #-- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
@@ -24,29 +25,61 @@ def currentTime():
     dateTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return dateTime
 
-class data(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    fullname = db.Column(db.String(100), nullable=False)
-    shortname = db.Column(db.String(100))
-    password = db.Column(db.String(50))
+class user(db.Model):
+    userId = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), nullable=False)
+    encryptedPassword = db.Column(db.String(200))
+    salt = db.Column(db.String(50))
+    passwordRecoveryQuestion = db.Column(db.String(300))
+    passwordRecoveryAnswer = db.Column(db.String(100))
 
-    def __init__(self, fullname, shortname, password):
-        self.fullname = fullname
-        self.shortname = shortname
-        self.password = password
+    def __init__(self, username, encryptedPassword, salt, passwordRecoveryQuestion, passwordRecoveryAnswer):
+        self.username = username
+        self.encryptedPassword = encryptedPassword
+        self.salt = salt
+        self.passwordRecoveryQuestion = passwordRecoveryQuestion
+        self.passwordRecoveryAnswer = passwordRecoveryAnswer
+
+class passwordEntry(db.Model):
+    entryId = db.Column(db.Integer, primary_key=True)
+    userId = db.Column(db.Integer)
+    title = db.Column(db.String(100))
+    encryptedPassword = db.Column(db.String(100))
+    associatedUrl = db.Column(db.String(100))
+    notes = db.Column(db.String(400))
+    dateCreated = db.Column(db.Date)
+    dateModified = db.Column(db.Time)
+
+class passwordGenerator(db.Model):
+    algorithimId = db.Column(db.Integer, primary_key=True)
+    algorithim = db.Column(db.String(100))
+    length = db.Column(db.Integer)
+    useUppercase = db.Column(db.Boolean)
+    useLowercase = db.Column(db.Boolean)
+    useNumbers = db.Column(db.Boolean)
+    useSpeicalChars = db.Column(db.Boolean)
+
+class encryptiionHandler(db.Model):
+    algorithimTypeId = db.Column(db.Integer, primary_key=True)
+    algorithmType = db.Column(db.String(100))
+    encryptionKey = db.Column(db.String(100))
 
 @bitwiz.route('/', methods=['POST', 'GET'])
 def indexPage():
-    fullName = None
-    shortName = None
+    username = None
     password = None
+    salt = None
+    question = None
+    answer = None
 
     if request.method == 'POST':
-        fullName = request.form['fullname']
-        shortName = request.form['shortname']
-        password = request.form['password']
+        newUsername = request.form['username']
+        newPassword = request.form['password']
+        newSalt = request.form['salt']
+        newQuestion = request.form['question']
+        newAnswer = request.form['answer']
 
-        newRec = data(fullName,shortName,password)
+        newRec = user(newUsername, newPassword, newSalt, newQuestion, newAnswer)
         db.session.add(newRec)
         db.session.commit()
 
@@ -57,10 +90,12 @@ def indexPage():
 @bitwiz.route('/next', methods=['GET'])
 def nextPage():
 
-    allRecords = data.query.all()
+    allRecords = user.query.all()
 
     return render_template('next.html', records=allRecords, timestamp = currentTime(), title = 'Database Lookup')
 
 if __name__ == '__main__':
     create_db(bitwiz)
-    bitwiz.run()
+# BE SURE TO SWITCH THESE WHEN DOING LOCAL DEVELOPMENT VS. DEPLOYED VERSION
+    #bitwiz.run()
+    bitwiz.run(debug=True)
