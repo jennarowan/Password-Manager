@@ -87,12 +87,25 @@ def indexPage():
 
     return render_template('index.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
 
+
+@bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
+def passgeneration():
+    return render_template('PasswordGenerator.html')
+
+
+@bitwiz.route('/slider_update', methods=['POST', 'GET'])
+def slider():
+    received_data = request.data
+    return received_data
+
+
 @bitwiz.route('/next', methods=['GET'])
 def nextPage():
 
     allRecords = user.query.all()
 
     return render_template('next.html', records=allRecords, timestamp = currentTime(), title = 'Database Lookup')
+
 
 if __name__ == '__main__':
     create_db(bitwiz)
