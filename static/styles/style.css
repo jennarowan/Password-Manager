@@ -105,5 +105,5 @@ label {
 
 /* Hover style for the login and register button */
 .btn-primary:hover {
-  background: red;
+  background: darkred;
 }
