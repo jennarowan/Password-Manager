@@ -14,6 +14,40 @@ h1 {
 	text-shadow: 4px 4px 6px black, 0 0 45px red, 0 0 15px darkred;
 }
 
+h2 {
+  color: black;
+  font-family: Arial;
+  text-align: center;
+  margin: 0;
+  font-size: 32px;
+}
+
+/* Navigation styles */
+nav {
+  background-color: #999;
+  padding: 10px;
+}
+
+nav ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+nav li {
+  display: inline-block;
+  margin-right: 20px;
+}
+
+nav a {
+  color: #fff;
+  text-decoration: none;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
 .formButton {
 	width: 200px;
 	height: 50px;
@@ -29,6 +63,38 @@ h1 {
 	text-align: center;
 }
 
+
+ .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0px 0px 5px #888888;
+    background: gray;
+}
+.rangeslider {
+    display: flex;
+    align-items: center;
+}
+
+.slider-value {
+    flex-grow: 1;
+    text-align: right;
+    padding-right: 10px;
+}
+
+.center-text {
+    text-align: center;
+}
+
+label {
+    margin-bottom: 10px;
+    color: white;
+    font-family: Arial;
+    text-align: center;
+}
+=======
 /* Styles for login.html page */
 .login-container {
   background: black;
@@ -38,11 +104,6 @@ h1 {
   margin: 50px auto 0;
   width: 400px;
   color: white; /* Text color for the entire container */
-}
-
-/* Style for form labels */
-label {
-  color: white; /* Text color for labels (Username and Password) */
 }
 
 /* Style for input fields */
