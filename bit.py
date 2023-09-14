@@ -64,7 +64,7 @@ class encryptiionHandler(db.Model):
     algorithmType = db.Column(db.String(100))
     encryptionKey = db.Column(db.String(100))
 
-@bitwiz.route('/', methods=['POST', 'GET'])
+@bitwiz.route('/register', methods=['POST', 'GET'])
 def indexPage():
     username = None
     password = None
@@ -87,7 +87,6 @@ def indexPage():
 
     return render_template('index.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
 
-
 @bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
 def passgeneration():
     return render_template('PasswordGenerator.html')
@@ -98,6 +97,17 @@ def slider():
     received_data = request.data
     return received_data
 
+@bitwiz.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # Get values entered in login
+
+        username = request.form['username']
+        password = request.form['password']
+
+        # Add the logic for Login
+
+    return render_template('login.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
 
 @bitwiz.route('/next', methods=['GET'])
 def nextPage():
