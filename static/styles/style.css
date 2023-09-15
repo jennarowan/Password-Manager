@@ -63,7 +63,6 @@ nav a:hover {
 	text-align: center;
 }
 
-
  .container {
     max-width: 600px;
     margin: 0 auto;
@@ -94,7 +93,7 @@ label {
     font-family: Arial;
     text-align: center;
 }
-=======
+
 /* Styles for login.html page */
 .login-container {
   background: black;
