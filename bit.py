@@ -97,6 +97,7 @@ def slider():
     received_data = request.data
     return received_data
 
+
 @bitwiz.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -108,6 +109,11 @@ def login():
         # Add the logic for Login
 
     return render_template('login.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
+
+
+@bitwiz.route('/masterReset', methods=['POST', 'GET'])
+def masterReset():
+    return render_template('ResetMasterPass.html')
 
 @bitwiz.route('/next', methods=['GET'])
 def nextPage():
