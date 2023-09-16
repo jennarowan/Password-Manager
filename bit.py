@@ -110,6 +110,9 @@ def login():
 
     return render_template('login.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
 
+@bitwiz.route('/PasswordEntry', methods=['GET', 'POST'])
+def passentry():
+    return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
 
 @bitwiz.route('/masterReset', methods=['POST', 'GET'])
 def masterReset():
