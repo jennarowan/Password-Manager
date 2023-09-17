@@ -154,6 +154,7 @@ def nextPage():
 
     return render_template('next.html', records=allRecords, timestamp = currentTime(), title = 'Database Lookup')
 
+login_manager.init_app(bitwiz)
+
 if __name__ == '__main__':
-    login_manager.init_app(bitwiz)
     bitwiz.run(debug=True)  #TESTLINE
