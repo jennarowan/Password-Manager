@@ -13,4 +13,15 @@
     <hr>
 {% endfor %}
 
+{% with messages = get_flashed_messages(with_categories=false) %}
+{% if messages %}
+	{% for message in messages %}
+		<div class="alert">
+		{{ message }}
+		</div>
+	</div>
+	{% endfor %}
+{% endif %}
+{% endwith %}
+
 {% endblock %}
