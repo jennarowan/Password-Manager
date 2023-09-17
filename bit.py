@@ -11,7 +11,7 @@ osVar = os.name
 if osVar == 'posix':
     dbName = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
 elif osVar == 'nt':
-    dbName = "instance/cmsc495.db" #-- This is used when doing local testing.
+    dbName = "cmsc495.db" #-- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
@@ -20,15 +20,6 @@ bitwiz.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Call the db
 db = SQLAlchemy(bitwiz)
-
-def create_db(app):
-    ''' Function that builds the database'''
-    if not path.exists(dbName):
-        db.create_all(app=bitwiz)
-
-def currentTime():
-    dateTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    return dateTime
 
 class user(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -68,6 +59,14 @@ class encryptiionHandler(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     algorithmType = db.Column(db.String(100))
     encryptionKey = db.Column(db.String(100))
+
+with bitwiz.app_context():
+    if not path.exists(dbName):
+        db.create_all()
+
+def currentTime():
+    dateTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return dateTime
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -156,8 +155,5 @@ def nextPage():
     return render_template('next.html', records=allRecords, timestamp = currentTime(), title = 'Database Lookup')
 
 if __name__ == '__main__':
-    create_db(bitwiz)
     login_manager.init_app(bitwiz)
-# BE SURE TO SWITCH THESE WHEN DOING LOCAL DEVELOPMENT VS. DEPLOYED VERSION
-    #bitwiz.run()
-    bitwiz.run()  #TESTLINE
+    bitwiz.run(debug=True)  #TESTLINE
