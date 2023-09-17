@@ -160,4 +160,4 @@ if __name__ == '__main__':
     login_manager.init_app(bitwiz)
 # BE SURE TO SWITCH THESE WHEN DOING LOCAL DEVELOPMENT VS. DEPLOYED VERSION
     #bitwiz.run()
-    bitwiz.run(debug=True)  #TESTLINE
+    bitwiz.run()  #TESTLINE
