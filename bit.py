@@ -1,3 +1,4 @@
+import os
 from os import path
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import login_user, login_required
@@ -5,22 +6,24 @@ from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-# Global variable for database
-# BE SURE TO SWITCH THESE WHEN DOING LOCAL DEVELOPMENT VS. DEPLOYED VERSION
-#DB_NAME = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
-DB_NAME = "instance/cmsc495.db" #-- This is used when doing local testing.
+osVar = os.name
+
+if osVar == 'posix':
+    dbName = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
+elif osVar == 'nt':
+    dbName = "instance/cmsc495.db" #-- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
-bitwiz.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
+bitwiz.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{dbName}'
 bitwiz.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Call the db.
+# Call the db
 db = SQLAlchemy(bitwiz)
 
 def create_db(app):
     ''' Function that builds the database'''
-    if not path.exists(DB_NAME):
+    if not path.exists(dbName):
         db.create_all(app=bitwiz)
 
 def currentTime():
