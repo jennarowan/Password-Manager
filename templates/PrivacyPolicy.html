@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Program Security</h1>
+<ul>
+    <h2>How is data stored securely?</h2>
+    <li>The application will be hosted on a signed and secured HTTPS server using “Let’s Encrypt” certificates. </li>
+    <li> User access is controlled through an authentication log-in process. The users information cannot be accessed without
+    verification. The user's login information will be stored securely so that the system can determine if their stored
+    credentials match the credentials they enter when they attempt to log in.</li>
+    <li>The database itself is encrypted and stored in a file owned and operated by the administrative user and cannot be accessed otherwise.</li>
+    <li>The user’s password information will be stored in the database in a hashed format of their choice.</li>
+    <li>The user can only decrypt their information to plain-text during an active session, and outside their session
+    the user's data remains encrypted in the database. Additionally, the user's session will time out after inactivity,
+    so data remains secure even if the user forgets to log out. </li>
+
+</ul>
+{% endblock %}
