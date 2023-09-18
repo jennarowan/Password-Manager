@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-container">
+  <h1>Reset Password</h1>
+  <form method="POST" action="{{ url_for('answerQuestion') }}">
+    <h3>Updating User: {{ request.args.get('sendUser') }}</h3>
+    <h3>Security Question: {{ request.args.get('sendQuestion') }}</h3>
+    <div class="form-group">
+      <input type="hidden" name="sendUser" id="sendUser" value="{{ request.args.get('sendUser') }}">
+      <label for="security_answer">Security Answer:</label>
+      <div class="user-input">
+        <input type="text" name="security_answer" id="security_answer" class="form-control" required>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="firstPassword">Enter Password:</label>
+      <div class="user-input">
+        <input type="password" name="firstPassword" id="firstPassword" class="form-control" required>
+        <span class="custom-eye" id="password-toggle" onmouseover="togglePassword('firstPassword')" onmouseout="togglePassword('firstPassword')"></span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="secondPassword">Enter Password:</label>
+      <div class="user-input">
+        <input type="password" name="secondPassword" id="secondPassword" class="form-control" required>
+        <span class="custom-eye" id="password-toggle" onmouseover="togglePassword('secondPassword')" onmouseout="togglePassword('secondPassword')"></span>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Reset Password</button>
+  </form>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=false) %}
+{% if messages %}
+	{% for message in messages %}
+		<div class="alert">
+		{{ message }}
+		</div>
+	</div>
+	{% endfor %}
+{% endif %}
+{% endwith %}
+
+<script>
+  // JavaScript function to toggle password visibility
+  function togglePassword(passId) {
+    const passwordInput = document.getElementById(passId);
+
+    if (passwordInput.type === "password") {
+      passwordInput.type = "text";
+    } else {
+      passwordInput.type = "password";
+    }
+  }
+</script>
+{% endblock %}
