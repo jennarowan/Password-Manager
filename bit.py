@@ -138,11 +138,54 @@ def login():
 
 @bitwiz.route('/PasswordEntry', methods=['GET', 'POST'])
 def passentry():
-    return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
+    return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'BitWizards - Password Entry')
 
 @bitwiz.route('/masterReset', methods=['POST', 'GET'])
 def masterReset():
-    return render_template('ResetMasterPass.html')
+    if request.method == 'POST':
+
+    # Get values entered in login
+        formUser = request.form['username']
+
+        checkUser = user.query.filter_by(username=formUser).first()      
+    
+        if checkUser:
+            loggedUser = checkUser.username
+            loggedQuestion = checkUser.passwordRecoveryQuestion
+            return redirect(url_for('answerQuestion', sendUser=loggedUser, sendQuestion=loggedQuestion))
+        else:
+            flash('User Not Found. Please try again.')
+    
+    return render_template('ResetMasterPass.html', timestamp = currentTime(), title = 'Enter Username to Reset')
+
+@bitwiz.route('/answer', methods=['POST', 'GET'])
+def answerQuestion():
+
+    if request.method == 'POST':
+
+        formUser = request.form['sendUser']
+        formAnswer = request.form['security_answer']
+        formPass1 = request.form['firstPassword']
+        formPass2 = request.form['secondPassword']
+
+        updateUser = user.query.filter_by(username=formUser).first()
+
+        if updateUser:
+            if updateUser.passwordRecoveryAnswer == formAnswer:
+                if formPass1 == formPass2:
+                    updateUser.encryptedPassword = formPass1
+                    db.session.commit()
+                    return redirect(url_for('nextPage'))
+                else:
+                    flash('Passwords did not match. Try again.')
+                    return redirect(url_for('masterReset'))
+            else:
+                flash('Incorrect Security Answer.')
+                return redirect(url_for('masterReset'))
+        else:
+            flash('User does not exist')
+
+    return render_template('answer.html', timestamp = currentTime(), title = 'Enter New Password')
 
 @bitwiz.route('/next', methods=['GET'])
 @login_required
