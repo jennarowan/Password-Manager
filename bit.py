@@ -1,3 +1,13 @@
+"""Authors: BitWizards(Kelvin Rodriguez, Shamar Barnes, Melissa Froh, Jeffrey Cauley, Jenna Rowan)
+Project: CMSC 495 Capstone, Comprehensive Password Manager
+
+Uses a flask environment to create a secure web application for generating and managing user's login
+information for various applications. The user's can generate different passwords, and add, edit, delete, and
+modify their passwords in the integrated SQLAlchemy database. The user will need to verify their account information
+before accessing their information.
+
+"""
+
 import os
 from os import path
 from flask import Flask, render_template, redirect, url_for, request, flash
@@ -65,6 +75,7 @@ with bitwiz.app_context():
         db.create_all()
 
 def currentTime():
+    """Returns the current time formatted to year, month, date and time."""
     dateTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return dateTime
 
@@ -78,6 +89,7 @@ def load_user(id):
 
 @bitwiz.route('/register', methods=['POST', 'GET'])
 def indexPage():
+    """Renders the index page and handles new user registration."""
     username = None
     password = None
     salt = None
@@ -103,17 +115,20 @@ def indexPage():
 
 @bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
 def passgeneration():
+    """Renders the password generator page, and handles generating random passwords."""
     return render_template('PasswordGenerator.html')
 
 
 @bitwiz.route('/slider_update', methods=['POST', 'GET'])
 def slider():
+    """Handles the password generator slider value updating on new input from user."""
     received_data = request.data
     return received_data
 
 
 @bitwiz.route('/', methods=['GET', 'POST'])
 def login():
+    """Renders the login page, and handles the user authentication."""
     if request.method == 'POST':
         # Get values entered in login
 
@@ -138,10 +153,17 @@ def login():
 
 @bitwiz.route('/PasswordEntry', methods=['GET', 'POST'])
 def passentry():
+    """Renders the password entry page, and handles the management of the user's passwords."""
     return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'BitWizards - Password Entry')
+
+@bitwiz.route('/PrivacyPolicy', methods=['GET', 'POST'])
+def privacypage():
+    """Renders the privacy page, which provides the user information about how information is stored securely."""
+    return render_template('PrivacyPolicy.html', timestamp=currentTime(), title='BitWizards Privacy Page')
 
 @bitwiz.route('/masterReset', methods=['POST', 'GET'])
 def masterReset():
+    """Renders the ResetMasterPass page, and handles authentication for resetting the master password."""
     if request.method == 'POST':
 
     # Get values entered in login
@@ -160,7 +182,7 @@ def masterReset():
 
 @bitwiz.route('/answer', methods=['POST', 'GET'])
 def answerQuestion():
-
+    """Renders the answer page, and handles updating the user's master password after verification."""
     if request.method == 'POST':
 
         formUser = request.form['sendUser']
@@ -190,7 +212,7 @@ def answerQuestion():
 @bitwiz.route('/next', methods=['GET'])
 @login_required
 def nextPage():
-
+    """Renders the next page."""
     allRecords = user.query.all()
 
     flash('Hello There') #TESTLINE
