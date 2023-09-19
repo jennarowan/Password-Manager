@@ -1,0 +1,13 @@
+[Unit]
+Description=gunicorn daemon for myapp
+After=network.target
+
+[Service]
+User=ec2-user
+Group=nginx
+WorkingDirectory=/home/ec2-user/CMSC-495-Project
+ExecStart=/usr/local/bin/gunicorn bit:bitwiz -w 4 -b 127.0.0.1:8001
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
