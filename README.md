@@ -9,3 +9,4 @@ This program provides secure storage of its users' passwords, and allows for add
 | Generate secure passwords of different length and complexity(mixed-case, numbers, special characters, etc.) |
 | Choose between different encryption algorithms when storing passwords |
 | User authentication to prevent unauthorized access to the user’s information |
+test
