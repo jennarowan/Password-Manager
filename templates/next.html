@@ -2,13 +2,23 @@
 
 {% block content %}
 
-{% for record in records %}
+{% for record in userRecord %}
     <div>
         Username: {{ record.username }}<br>
         Password: {{ record.encryptedPassword }}<br>
         Salt: {{ record.salt }}<br>
         Security Question: {{ record.passwordRecoveryQuestion }}<br>
         Security Answer: {{ record.passwordRecoveryAnswer }}<br>
+    </div>
+    <hr>
+{% endfor %}
+
+{% for record in passwordRecords %}
+    <div>
+        Title: {{ record.title }}<br>
+        Password: {{ record.encryptedPassword }}<br>
+        URL: {{ record.associatedUrl }}<br>
+        Notes: {{ record.notes }}<br>
     </div>
     <hr>
 {% endfor %}
