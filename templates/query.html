@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% for record in records %}
+    <div>
+        Username: {{ record.appUser }}<br>
+        Password: {{ record.encryptedPassword }}<br>
+        Title: {{ record.title }}<br>
+        Associated URL: {{ record.associatedUrl }}<br>
+        Notes: {{ record.notes }}<br>
+        Date Created: {{ record.dateCreated }}<br>
+        Date Modified: {{ record.dateModified }}<br>
+    </div>
+    <hr>
+{% endfor %}
+
+{% with messages = get_flashed_messages(with_categories=false) %}
+{% if messages %}
+	{% for message in messages %}
+		<div class="alert">
+		{{ message }}
+		</div>
+	</div>
+	{% endfor %}
+{% endif %}
+{% endwith %}
+
+{% endblock %}

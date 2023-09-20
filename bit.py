@@ -52,11 +52,22 @@ class passwordEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     userId = db.Column(db.Integer)
     title = db.Column(db.String(100))
+    appUser = db.Column(db.String(100))
     encryptedPassword = db.Column(db.String(100))
     associatedUrl = db.Column(db.String(100))
     notes = db.Column(db.String(400))
-    dateCreated = db.Column(db.Date)
-    dateModified = db.Column(db.Time)
+    dateCreated = db.Column(db.DateTime)
+    dateModified = db.Column(db.DateTime)
+
+    def __init__(self, userId, title, appUser, encryptedPassword, associatedUrl, notes, dateCreated, dateModified):
+        self.userId = userId
+        self.title = title
+        self.appUser = appUser
+        self.encryptedPassword = encryptedPassword
+        self.associatedUrl = associatedUrl
+        self.notes = notes
+        self.dateCreated = dateCreated
+        self.dateModified = dateModified
 
 class passwordGenerator(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -67,7 +78,7 @@ class passwordGenerator(db.Model):
     useNumbers = db.Column(db.Boolean)
     useSpeicalChars = db.Column(db.Boolean)
 
-class encryptiionHandler(db.Model):
+class encryptionHandler(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     algorithmType = db.Column(db.String(100))
     encryptionKey = db.Column(db.String(100))
@@ -196,9 +207,25 @@ def login():
     return render_template('login.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
 
 @bitwiz.route('/PasswordEntry', methods=['GET', 'POST'])
-def passentry():
+@login_required
+def passEntry():
     """Renders the password entry page, and handles the management of the user's passwords."""
-    return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'BitWizards - Password Entry')
+    if request.method == 'POST':
+        appDescName = request.form['application']
+        appUser = request.form['username']
+        appPassword = request.form['password']
+        appAlgorithm = request.form['algorithm']
+
+        currUserId = current_user.id
+
+        newPass = passwordEntry(currUserId, appDescName, appUser, appPassword, None, None, datetime.now(), datetime.now())
+        db.session.add(newPass)
+        db.session.commit()
+
+        return redirect(url_for('queryPage', userVal = currUserId))
+    
+    return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards - Create Password')
+
 
 @bitwiz.route('/PrivacyPolicy', methods=['GET', 'POST'])
 def privacypage():
@@ -269,6 +296,16 @@ def nextPage():
 
     return render_template('next.html', userRecord = userRecord, passwordRecords = passwordRecords, timestamp = currentTime(), title = 'Database Lookup')
 
+@bitwiz.route('/query/<int:userVal>', methods=['GET'])
+@login_required
+def queryPage(userVal):
+    """Renders the next page."""
+    allRecords = passwordEntry.query.filter_by(userId=userVal)
+
+    flash('Hello There') #TESTLINE
+
+    return render_template('query.html', records=allRecords, timestamp = currentTime(), title = 'Database Query Tester')
+    
 login_manager.init_app(bitwiz)
 
 if __name__ == '__main__':
