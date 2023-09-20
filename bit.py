@@ -262,11 +262,12 @@ def answerQuestion():
 @login_required
 def nextPage():
     """Renders the next page."""
-    allRecords = user.query.all()
+    userRecord = user.query.filter_by(id=current_user.id).all()
+    passwordRecords = passwordEntry.query.filter_by(userId=current_user.id).all()
 
     flash('Hello There') #TESTLINE
 
-    return render_template('next.html', records=allRecords, timestamp = currentTime(), title = 'Database Lookup')
+    return render_template('next.html', userRecord = userRecord, passwordRecords = passwordRecords, timestamp = currentTime(), title = 'Database Lookup')
 
 login_manager.init_app(bitwiz)
 
