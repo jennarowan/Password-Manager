@@ -161,6 +161,11 @@ def privacypage():
     """Renders the privacy page, which provides the user information about how information is stored securely."""
     return render_template('PrivacyPolicy.html', timestamp=currentTime(), title='BitWizards Privacy Page')
 
+@bitwiz.route('/UserGuide', methods=['GET', 'POST'])
+def userguide():
+    """Renders the user guide page, which provides the user information about how to use the program."""
+    return render_template('UserGuide.html', timestamp=currentTime(), title='BitWizards User Guide')
+
 @bitwiz.route('/masterReset', methods=['POST', 'GET'])
 def masterReset():
     """Renders the ResetMasterPass page, and handles authentication for resetting the master password."""
