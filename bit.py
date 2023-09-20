@@ -15,6 +15,8 @@ from flask_login import login_user, login_required
 from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import secrets
+import string
 
 osVar = os.name
 
@@ -115,8 +117,50 @@ def indexPage():
 
 @bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
 def passgeneration():
-    """Renders the password generator page, and handles generating random passwords."""
-    return render_template('PasswordGenerator.html')
+    """Renders the password generator page, and handles generating and populating random passwords."""
+    temppassword = ""
+    if request.method == 'POST':
+        # Get values from checkbox and slider on password generator page
+        uppercase = request.form.get('uppercase')
+        lowercase = request.form.get('lowercase')
+        numbers = request.form.get('numbers')
+        symbols = request.form.get('symbols')
+        length = int(request.form.get('length'))
+        temppassword = generate_password(uppercase, lowercase, numbers, symbols, length)
+
+    return render_template('PasswordGenerator.html', passwordOutput=temppassword,
+                           timestamp=currentTime(), title='CMST 495 - BitWizards')
+
+
+def generate_password(uppercase, lowercase, numbers, symbols, length):
+    """ Join characters to form random secure password using user specified characters,
+    returns the password.
+
+    Args:
+        uppercase: Flag for if uppercase is included in the set of characters
+        lowercase: Flag for if lowercase is included in the set of characters
+        numbers: Flag for if digits are included in the set of characters
+        symbols: Flag for if symbols are included in the set of characters
+        length: The lenght of the password to be generated
+    Returns:
+        securepassword: A password formed using the secrets module to the specified length ans ascii set.
+
+    """
+    alphabet = ""
+    if uppercase:
+        alphabet += string.ascii_uppercase
+
+    if lowercase:
+        alphabet += string.ascii_lowercase
+
+    if numbers:
+        alphabet += string.digits
+
+    if symbols:
+        alphabet += string.punctuation
+
+    securepassword = ''.join(secrets.choice(alphabet) for i in range(length))
+    return securepassword
 
 
 @bitwiz.route('/slider_update', methods=['POST', 'GET'])
