@@ -8,7 +8,8 @@ before accessing their information.
 
 """
 
-import os
+#import os
+import requests
 from os import path
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import login_user, login_required
@@ -18,12 +19,24 @@ from datetime import datetime
 import secrets
 import string
 
-osVar = os.name
+#osVar = os.name
 
-if osVar == 'posix':
+def isAws():
+    try:
+        response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=1)
+        return True if response.status_code == 200 else False
+    except requests.RequestException:
+        return False
+
+if isAws():
     dbName = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
-elif osVar == 'nt':
+else:
     dbName = "cmsc495.db" #-- This is used when doing local testing.
+
+#if osVar == 'posix':
+#    dbName = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
+#elif osVar == 'nt':
+#    dbName = "cmsc495.db" #-- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
