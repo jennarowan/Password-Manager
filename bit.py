@@ -296,6 +296,14 @@ def nextPage():
 
     return render_template('next.html', userRecord = userRecord, passwordRecords = passwordRecords, timestamp = currentTime(), title = 'Database Lookup')
 
+
+@bitwiz.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.')
+    return redirect(url_for('login'))
+
 @bitwiz.route('/query/<int:userVal>', methods=['GET'])
 @login_required
 def queryPage(userVal):
