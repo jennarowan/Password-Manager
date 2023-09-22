@@ -3,7 +3,7 @@
 {% block content %}
 <div class="login-container">
   <h1>Reset Password</h1>
-  <form method="POST" action="{{ url_for('answerQuestion') }}">
+  <form method="POST" action="{{ url_for('answer_question') }}">
     <h3>Updating User: {{ request.args.get('sendUser') }}</h3>
     <h3>Security Question: {{ request.args.get('sendQuestion') }}</h3>
     <div class="form-group">

@@ -297,7 +297,7 @@ def login():
 
     return render_template('login.html', timestamp = current_time(), title = 'CMST 495 - BitWizards')
 
-@bitwiz.route('/PasswordEntry', methods=['GET', 'POST'])
+@bitwiz.route('/pass_entry', methods=['GET', 'POST'])
 @login_required
 def pass_entry():
     """Renders the password entry page, and handles the management of the user's passwords."""
@@ -348,7 +348,7 @@ def master_reset():
         else:
             flash('User Not Found. Please try again.')
     
-    return render_template('ResetMasterPass.html', timestamp = current_time(), title = 'Enter Username to Reset')
+    return render_template('reset.html', timestamp = current_time(), title = 'Enter Username to Reset')
 
 @bitwiz.route('/answer', methods=['POST', 'GET'])
 def answer_question():
@@ -387,7 +387,6 @@ def next_page():
     password_records = PasswordEntry.query.filter_by(user_id=current_user.id).all()
     print(user_record)
     print(password_records)
-    flash('Hello There') #TESTLINE
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, timestamp=current_time(), title='Database Lookup')
@@ -397,41 +396,40 @@ def next_page():
 @login_required
 def modify_password():
     """Renders the modify password page, and receives stored data the user selected to modify."""
-    modTitle = request.args.get('title')
-    modUser = request.args.get('username')
-    modPass = request.args.get('password')
-    modAlgo = request.args.get('algorithm')
-    modUrl = request.args.get('url')
-    modNotes = request.args.get('notes')
-    modId = request.args.get('recid')
-
-    flash(modTitle)
-    flash(modUser)
-    flash(modPass)
-    flash(modAlgo)
-    flash(modUrl)
-    flash(modNotes)
-    flash(modId)
+    if request.method == 'GET':
+        og_title = request.args.get('title')
+        og_user = request.args.get('username')
+        og_pass = request.args.get('password')
+        og_id = request.args.get('record_id')
 
     if request.method == 'POST':
 
-        encPass = encrypt_password(modPass, modAlgo)
-        updatePass = PasswordEntry.query.filter_by(id=modId).all()
+        mod_id = int(request.form.get('record_id'))
+        mod_title = request.form.get('title')
+        mod_user = request.form.get('username')
+        mod_pass = request.form.get('password')
+        mod_algo = request.form.get('algorithm')
+        mod_url = request.form.get('url')
+        mod_notes = request.form.get('notes')
 
-        updatePass.title = modTitle
-        updatePass.app_user = modUser
-        updatePass.encrypted_password = encPass
-        updatePass.associated_url = modUrl
-        updatePass.notes = modNotes
-        updatePass.date_modified = datetime.now()
+        encrypt_pass = encrypt_password(mod_pass, mod_algo)
+        update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
 
-        db.session.commit()
+        if update_pass:
+            update_pass.title = mod_title
+            update_pass.app_user = mod_user
+            #update_pass.encrypted_password = mod_pass
+            update_pass.encrypted_password = encrypt_pass
+            update_pass.associated_url = mod_url
+            update_pass.notes = mod_notes
+            update_pass.date_modified = datetime.now()
+            
+            db.session.commit()
         
-        # Add logic to write new user data to database
         return redirect(url_for('next_page'))
 
-    return render_template('ModifyPassword.html', application=title, username=username,
-                           password=password, timestamp=current_time(), title='Modify Entry')
+    return render_template('ModifyPassword.html', application=og_title, username=og_user, record_id=og_id,
+                           password=og_pass, timestamp=current_time(), title='Modify Entry')
 
 @bitwiz.route('/logout')
 @login_required
