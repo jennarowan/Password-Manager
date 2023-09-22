@@ -201,11 +201,11 @@ def index_page():
     if request.method == 'POST':
         new_username = request.form.get('username')
         new_password = request.form.get('password')
-        newSalt = request.form.get('salt')
-        newQuestion = request.form.get('question')
-        newAnswer = request.form.get('answer')
+        new_salt = request.form.get('salt')
+        new_question = request.form.get('question')
+        new_answer = request.form.get('answer')
 
-        new_rec = User(new_username, new_password, newSalt, newQuestion, newAnswer)
+        new_rec = User(new_username, new_password, new_salt, new_question, new_answer)
         db.session.add(new_rec)
         db.session.commit()
         login_user(new_rec, remember=True)
