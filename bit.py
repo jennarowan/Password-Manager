@@ -10,7 +10,6 @@ verify their account information before accessing their information.
 
 """
 
-#import os
 from os import path
 import base64
 import secrets
@@ -26,8 +25,6 @@ from Crypto.Cipher import AES
 from Crypto.Cipher import DES
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
-
-#osVar = os.name
 
 # Gathered at login, used as encryption key
 PASSWORD_KEY_AES = None
@@ -45,11 +42,6 @@ if is_aws():
     DB_NAME = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
 else:
     DB_NAME = "cmsc495.db" #-- This is used when doing local testing.
-
-#if osVar == 'posix':
-#    DB_NAME = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
-#elif osVar == 'nt':
-#    DB_NAME = "cmsc495.db" #-- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
@@ -405,11 +397,36 @@ def next_page():
 @login_required
 def modify_password():
     """Renders the modify password page, and receives stored data the user selected to modify."""
-    title = request.args.get('title')
-    username = request.args.get('username')
-    password = request.args.get('password')
+    modTitle = request.args.get('title')
+    modUser = request.args.get('username')
+    modPass = request.args.get('password')
+    modAlgo = request.args.get('algorithm')
+    modUrl = request.args.get('url')
+    modNotes = request.args.get('notes')
+    modId = request.args.get('recid')
+
+    flash(modTitle)
+    flash(modUser)
+    flash(modPass)
+    flash(modAlgo)
+    flash(modUrl)
+    flash(modNotes)
+    flash(modId)
 
     if request.method == 'POST':
+
+        encPass = encrypt_password(modPass, modAlgo)
+        updatePass = PasswordEntry.query.filter_by(id=modId).all()
+
+        updatePass.title = modTitle
+        updatePass.app_user = modUser
+        updatePass.encrypted_password = encPass
+        updatePass.associated_url = modUrl
+        updatePass.notes = modNotes
+        updatePass.date_modified = datetime.now()
+
+        db.session.commit()
+        
         # Add logic to write new user data to database
         return redirect(url_for('next_page'))
 
