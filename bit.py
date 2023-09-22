@@ -306,7 +306,6 @@ def passEntry():
     
     return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards - Create Password')
 
-
 @bitwiz.route('/PrivacyPolicy', methods=['GET', 'POST'])
 def privacypage():
     """Renders the privacy page, which provides the user information about how information is stored securely."""
@@ -365,21 +364,37 @@ def answerQuestion():
 
     return render_template('answer.html', timestamp = currentTime(), title = 'Enter New Password')
 
-@bitwiz.route('/next', methods=['GET'])
+@bitwiz.route('/next', methods=['GET', 'POST'])
 @login_required
 def nextPage():
     """Renders the next page."""
     userRecord = user.query.filter_by(id=current_user.id).all()
     passwordRecords = passwordEntry.query.filter_by(userId=current_user.id).all()
-
     flash('Hello There') #TESTLINE
 
-    return render_template('next.html', userRecord = userRecord, passwordRecords = passwordRecords, timestamp = currentTime(), title = 'Database Lookup')
+    return render_template('next.html', userRecord=userRecord,
+                           passwordRecords=passwordRecords, timestamp=currentTime(), title='Database Lookup')
 
+
+@bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
+@login_required
+def modifypassword():
+    """Renders the modify password page, and receives stored data the user selected to modify."""
+    title = request.args.get('title')
+    username = request.args.get('username')
+    password = request.args.get('password')
+
+    if request.method == 'POST':
+        # Add logic to write new user data to database
+        return redirect(url_for('nextPage'))
+
+    return render_template('ModifyPassword.html', application=title, username=username,
+                           password=password, timestamp=currentTime(), title='Modify Entry')
 
 @bitwiz.route('/logout')
 @login_required
 def logout():
+    """Calls helper function to log out, and redirects to the login page after session is terminated."""
     logout_user()
     flash('You have been logged out.')
     return redirect(url_for('login'))
@@ -387,7 +402,7 @@ def logout():
 @bitwiz.route('/query/<int:userVal>', methods=['GET'])
 @login_required
 def queryPage(userVal):
-    """Renders the next page."""
+    """Renders the queries page."""
     allRecords = passwordEntry.query.filter_by(userId=userVal)
 
     flash('Hello There') #TESTLINE

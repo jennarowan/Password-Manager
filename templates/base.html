@@ -16,7 +16,8 @@
             <li><a href="/PasswordGenerator">Password Generation</a></li>
             {% if current_user.is_authenticated %}
                 <!-- Navigation links for logged-in users -->
-                <li><a href="/PasswordEntry">Password Manager</a></li>
+                <li><a href="/PasswordEntry">Password Entry</a></li>
+                 <li><a href="/next">Password Manager</a></li>
                 <li><a href="/logout">Logout</a></li>
             {% endif %}
         </ul>
