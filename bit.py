@@ -10,7 +10,6 @@ verify their account information before accessing their information.
 
 """
 
-#import os
 from os import path
 import base64
 import secrets
@@ -26,8 +25,6 @@ from Crypto.Cipher import AES
 from Crypto.Cipher import DES
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
-
-#osVar = os.name
 
 # Gathered at login, used as encryption key
 PASSWORD_KEY_AES = None
@@ -45,11 +42,6 @@ if is_aws():
     DB_NAME = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
 else:
     DB_NAME = "cmsc495.db" #-- This is used when doing local testing.
-
-#if osVar == 'posix':
-#    DB_NAME = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
-#elif osVar == 'nt':
-#    DB_NAME = "cmsc495.db" #-- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
@@ -305,7 +297,7 @@ def login():
 
     return render_template('login.html', timestamp = current_time(), title = 'CMST 495 - BitWizards')
 
-@bitwiz.route('/PasswordEntry', methods=['GET', 'POST'])
+@bitwiz.route('/pass_entry', methods=['GET', 'POST'])
 @login_required
 def pass_entry():
     """Renders the password entry page, and handles the management of the user's passwords."""
@@ -356,7 +348,7 @@ def master_reset():
         else:
             flash('User Not Found. Please try again.')
     
-    return render_template('ResetMasterPass.html', timestamp = current_time(), title = 'Enter Username to Reset')
+    return render_template('reset.html', timestamp = current_time(), title = 'Enter Username to Reset')
 
 @bitwiz.route('/answer', methods=['POST', 'GET'])
 def answer_question():
@@ -395,7 +387,6 @@ def next_page():
     password_records = PasswordEntry.query.filter_by(user_id=current_user.id).all()
     print(user_record)
     print(password_records)
-    flash('Hello There') #TESTLINE
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, timestamp=current_time(), title='Database Lookup')
@@ -405,16 +396,40 @@ def next_page():
 @login_required
 def modify_password():
     """Renders the modify password page, and receives stored data the user selected to modify."""
-    title = request.args.get('title')
-    username = request.args.get('username')
-    password = request.args.get('password')
+    if request.method == 'GET':
+        og_title = request.args.get('title')
+        og_user = request.args.get('username')
+        og_pass = request.args.get('password')
+        og_id = request.args.get('record_id')
 
     if request.method == 'POST':
-        # Add logic to write new user data to database
+
+        mod_id = int(request.form.get('record_id'))
+        mod_title = request.form.get('title')
+        mod_user = request.form.get('username')
+        mod_pass = request.form.get('password')
+        mod_algo = request.form.get('algorithm')
+        mod_url = request.form.get('url')
+        mod_notes = request.form.get('notes')
+
+        encrypt_pass = encrypt_password(mod_pass, mod_algo)
+        update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
+
+        if update_pass:
+            update_pass.title = mod_title
+            update_pass.app_user = mod_user
+            #update_pass.encrypted_password = mod_pass
+            update_pass.encrypted_password = encrypt_pass
+            update_pass.associated_url = mod_url
+            update_pass.notes = mod_notes
+            update_pass.date_modified = datetime.now()
+            
+            db.session.commit()
+        
         return redirect(url_for('next_page'))
 
-    return render_template('ModifyPassword.html', application=title, username=username,
-                           password=password, timestamp=current_time(), title='Modify Entry')
+    return render_template('ModifyPassword.html', application=og_title, username=og_user, record_id=og_id,
+                           password=og_pass, timestamp=current_time(), title='Modify Entry')
 
 @bitwiz.route('/logout')
 @login_required
