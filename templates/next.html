@@ -13,15 +13,52 @@
     <hr>
 {% endfor %}
 
-{% for record in passwordRecords %}
-    <div>
-        Title: {{ record.title }}<br>
-        Password: {{ record.encryptedPassword }}<br>
-        URL: {{ record.associatedUrl }}<br>
-        Notes: {{ record.notes }}<br>
+<form method="POST" action="{{ url_for('nextPage') }}">
+    <div class=outer-container>
+        {% for record in passwordRecords %}
+        <div class=login-container>
+            <div>
+                <span class="record-username username-link" title="Click to modify this entry"
+                      data-record-id="{{ record.id }}" data-record-title="{{ record.title }}"
+                      data-record-username="{{ record.appUser }}"
+                      data-record-password="{{ record.encryptedPassword }}"
+                      data-record-url="{{ record.associatedUrl }}" data-record-notes="{{ record.notes }}">
+                Username: {{ record.appUser }}</span> <br>
+                Title: {{ record.title }}<br>
+                Password: {{ record.encryptedPassword }}<br>
+                URL: {{ record.associatedUrl }}<br>
+                Notes: {{ record.notes }}<br>
+                <br>
+            </div>
+            <hr>
+        </div>
+        {% endfor %}
     </div>
-    <hr>
-{% endfor %}
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var usernames = document.querySelectorAll('.record-username');
+        usernames.forEach(function (username) {
+            username.addEventListener('click', function () {
+                var recordId = this.getAttribute('data-record-id');
+                var recordTitle = this.getAttribute('data-record-title');
+                var recordUsername = this.getAttribute('data-record-username');
+                var recordPassword = this.getAttribute('data-record-password');
+                var recordUrl = this.getAttribute('data-record-url');
+                var recordNotes = this.getAttribute('data-record-notes');
+                var recordId = this.getAttribute('data-record-id');
+
+             window.location.href = '/ModifyPassword?record_id=' + recordId +
+                '&title=' + recordTitle +
+                '&username=' + recordUsername +
+                '&password=' + recordPassword +
+                '&url=' + recordUrl +
+                '&notes=' + recordNotes;
+             });
+        });
+    });
+</script>
 
 {% with messages = get_flashed_messages(with_categories=false) %}
 {% if messages %}
