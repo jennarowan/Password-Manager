@@ -5,13 +5,13 @@
     {% for record in records %}
         <div class=login-container>
             <div>
-                Username: {{ record.appUser }}<br>
-                Password: {{ record.encryptedPassword }}<br>
+                Username: {{ record.app_user }}<br>
+                Password: {{ record.encrypted_password }}<br>
                 Title: {{ record.title }}<br>
-                Associated URL: {{ record.associatedUrl }}<br>
+                Associated URL: {{ record.associated_url }}<br>
                 Notes: {{ record.notes }}<br>
-                Date Created: {{ record.dateCreated }}<br>
-                Date Modified: {{ record.dateModified }}<br>
+                Date Created: {{ record.date_created }}<br>
+                Date Modified: {{ record.date_modified }}<br>
                 <br>
             </div>
         </div>

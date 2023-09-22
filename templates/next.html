@@ -2,31 +2,32 @@
 
 {% block content %}
 
-{% for record in userRecord %}
+{% for record in user_record %}
     <div>
         Username: {{ record.username }}<br>
-        Password: {{ record.encryptedPassword }}<br>
+        Password: {{ record.encrypted_password }}<br>
         Salt: {{ record.salt }}<br>
-        Security Question: {{ record.passwordRecoveryQuestion }}<br>
-        Security Answer: {{ record.passwordRecoveryAnswer }}<br>
+        Security Question: {{ record.password_recovery_question }}<br>
+        Security Answer: {{ record.password_recovery_answer }}<br>
     </div>
     <hr>
 {% endfor %}
 
-<form method="POST" action="{{ url_for('nextPage') }}">
+<form method="POST" action="{{ url_for('next_page') }}">
     <div class=outer-container>
-        {% for record in passwordRecords %}
+        {% for record in password_records %}
         <div class=login-container>
             <div>
                 <span class="record-username username-link" title="Click to modify this entry"
-                      data-record-id="{{ record.id }}" data-record-title="{{ record.title }}"
-                      data-record-username="{{ record.appUser }}"
-                      data-record-password="{{ record.encryptedPassword }}"
-                      data-record-url="{{ record.associatedUrl }}" data-record-notes="{{ record.notes }}">
-                Username: {{ record.appUser }}</span> <br>
+                      data-record-id="{{ record.id }}" 
+                      data-record-title="{{ record.title }}"
+                      data-record-username="{{ record.app_user }}"
+                      data-record-password="{{ record.encrypted_password }}"
+                      data-record-url="{{ record.associated_url }}" data-record-notes="{{ record.notes }}">
+                Username: {{ record.app_user }}</span> <br>
                 Title: {{ record.title }}<br>
-                Password: {{ record.encryptedPassword }}<br>
-                URL: {{ record.associatedUrl }}<br>
+                Password: {{ record.encrypted_password }}<br>
+                URL: {{ record.associated_url }}<br>
                 Notes: {{ record.notes }}<br>
                 <br>
             </div>
@@ -47,7 +48,6 @@
                 var recordPassword = this.getAttribute('data-record-password');
                 var recordUrl = this.getAttribute('data-record-url');
                 var recordNotes = this.getAttribute('data-record-notes');
-                var recordId = this.getAttribute('data-record-id');
 
              window.location.href = '/ModifyPassword?record_id=' + recordId +
                 '&title=' + recordTitle +
