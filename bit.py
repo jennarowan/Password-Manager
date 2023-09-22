@@ -12,8 +12,6 @@ verify their account information before accessing their information.
 
 #import os
 from os import path
-import random
-import sys
 import base64
 import secrets
 import string
@@ -30,6 +28,10 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 
 #osVar = os.name
+
+# Gathered at login, used as encryption key
+PASSWORD_KEY_AES = None
+PASSWORD_KEY_DES = None
 
 def is_aws():
     """Checks if the application is running on an AWS EC2 instance."""
@@ -128,18 +130,23 @@ def pad(data):
     padding = bytes([padding_length]) * padding_length
     return data + padding
 
+def pad_des(data):
+    """This function will pad the data to ensure it is a multiple of 8 bytes."""
+    block_size = 8
+    padding_length = block_size - (len(data) % block_size)
+    padding = bytes([padding_length]) * padding_length
+    return data + padding
+
 def encrypt_password(password, algorithm_choice):
     """This function will encrypt the user's password with the chosen algorithm."""
 
     # the users message will be encrypted with the chosen algorithm
     if algorithm_choice == "AES":
         # AES encryption
-        # generate a random key for AES
-        aes_key = bytes([random.randint(0, 0xFF) for i in range(16)])
         # Pad the message to ensure it is a multiple of 16 bytes
         padded_message = pad(password.encode())
         # create a new AES object
-        aes_object = AES.new(aes_key, AES.MODE_ECB)
+        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
         # encrypt the message
         encrypted_message = aes_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
@@ -148,12 +155,10 @@ def encrypt_password(password, algorithm_choice):
     
     elif algorithm_choice == "DES":
         # DES encryption
-        # generate a random key for DES
-        des_key = bytes([random.randint(0, 0xFF) for i in range(8)])
         # Pad the message to ensure it is a multiple of 8 bytes
         padded_message = pad(password.encode())
         # create a new DES object
-        des_object = DES.new(des_key, DES.MODE_ECB)
+        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
         # encrypt the message
         encrypted_message = des_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
@@ -278,6 +283,11 @@ def login():
 
         username = request.form['username']
         password = request.form['password']
+
+        global PASSWORD_KEY_AES
+        global PASSWORD_KEY_DES
+        PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
+        PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
 
         log_user = User.query.filter_by(username=username).first()
 
