@@ -1,11 +1,14 @@
 """
-This file will contain all of the implemented encryption algorithms like AES, RSA, DES, and Blowfish.
+This file will contain all of the implemented encryption algorithms like AES, RSA, DES, 
+and Blowfish.
 """
+
 # import the cryptography library to use the encryption algorithms
 from Crypto.Cipher import AES, DES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 import base64
 import random
+import sys
 
 # Define master keys for each algorithm
 AES_MASTER_KEY = b'\x01\x23\x45\x67\x89\xab\xcd\xef\xfe\xdc\xba\x98\x76\x54\x32\x10'
@@ -14,6 +17,7 @@ RSA_KEY = RSA.generate(2048)
 
 
 def pad(data):
+    """This function will pad the data to ensure it is a multiple of 16 bytes."""
     block_size = 16
     padding_length = block_size - (len(data) % block_size)
     padding = bytes([padding_length]) * padding_length

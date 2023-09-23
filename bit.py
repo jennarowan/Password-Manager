@@ -1,75 +1,97 @@
-"""Authors: BitWizards(Kelvin Rodriguez, Shamar Barnes, Melissa Froh, Jeffrey Cauley, Jenna Rowan)
+"""
+
+Authors: BitWizards(Kelvin Rodriguez, Shamar Barnes, Melissa Froh, Jeffrey Cauley, Jenna Rowan)
 Project: CMSC 495 Capstone, Comprehensive Password Manager
 
 Uses a flask environment to create a secure web application for generating and managing user's login
-information for various applications. The user's can generate different passwords, and add, edit, delete, and
-modify their passwords in the integrated SQLAlchemy database. The user will need to verify their account information
-before accessing their information.
+information for various applications. The user's can generate different passwords, and add, edit, 
+delete, and modify their passwords in the integrated SQLAlchemy database. The user will need to 
+verify their account information before accessing their information.
 
 """
 
-import os
 from os import path
+import base64
+import secrets
+import string
+from datetime import datetime
+import requests
+
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import login_user, login_required
 from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-import secrets
-import string
+from Crypto.Cipher import AES
+from Crypto.Cipher import DES
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
 
-osVar = os.name
+# Gathered at login, used as encryption key
+PASSWORD_KEY_AES = None
+PASSWORD_KEY_DES = None
 
-if osVar == 'posix':
-    dbName = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
-elif osVar == 'nt':
-    dbName = "cmsc495.db" #-- This is used when doing local testing.
+def is_aws():
+    """Checks if the application is running on an AWS EC2 instance."""
+    try:
+        response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=1)
+        return True if response.status_code == 200 else False
+    except requests.RequestException:
+        return False
+
+if is_aws():
+    DB_NAME = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
+else:
+    DB_NAME = "cmsc495.db" #-- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
-bitwiz.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{dbName}'
+bitwiz.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
 bitwiz.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Call the db
 db = SQLAlchemy(bitwiz)
 
-class user(UserMixin, db.Model):
+class User(UserMixin, db.Model):
+    """Creates the User table in the database."""
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False)
-    encryptedPassword = db.Column(db.String(200))
+    encrypted_password = db.Column(db.String(200))
     salt = db.Column(db.String(50))
-    passwordRecoveryQuestion = db.Column(db.String(300))
-    passwordRecoveryAnswer = db.Column(db.String(100))
+    password_recovery_question = db.Column(db.String(300))
+    password_recovery_answer = db.Column(db.String(100))
 
-    def __init__(self, username, encryptedPassword, salt, passwordRecoveryQuestion, passwordRecoveryAnswer):
+    def __init__(self, username, encrypted_password, salt, password_recovery_question, 
+                 password_recovery_answer):
         self.username = username
-        self.encryptedPassword = encryptedPassword
+        self.encrypted_password = encrypted_password
         self.salt = salt
-        self.passwordRecoveryQuestion = passwordRecoveryQuestion
-        self.passwordRecoveryAnswer = passwordRecoveryAnswer
+        self.password_recovery_question = password_recovery_question
+        self.password_recovery_answer = password_recovery_answer
 
-class passwordEntry(db.Model):
+class PasswordEntry(db.Model):
+    """Creates the PasswordEntry table in the database."""
     id = db.Column(db.Integer, primary_key=True)
-    userId = db.Column(db.Integer)
+    user_id = db.Column(db.Integer)
     title = db.Column(db.String(100))
-    appUser = db.Column(db.String(100))
-    encryptedPassword = db.Column(db.String(100))
-    associatedUrl = db.Column(db.String(100))
+    app_user = db.Column(db.String(100))
+    encrypted_password = db.Column(db.String(100))
+    associated_url = db.Column(db.String(100))
     notes = db.Column(db.String(400))
-    dateCreated = db.Column(db.DateTime)
-    dateModified = db.Column(db.DateTime)
+    date_created = db.Column(db.DateTime)
+    date_modified = db.Column(db.DateTime)
 
-    def __init__(self, userId, title, appUser, encryptedPassword, associatedUrl, notes, dateCreated, dateModified):
-        self.userId = userId
+    def __init__(self, user_id, title, app_user, encrypted_password, associated_url, notes, date_created, date_modified):
+        self.user_id = user_id
         self.title = title
-        self.appUser = appUser
-        self.encryptedPassword = encryptedPassword
-        self.associatedUrl = associatedUrl
+        self.app_user = app_user
+        self.encrypted_password = encrypted_password
+        self.associated_url = associated_url
         self.notes = notes
-        self.dateCreated = dateCreated
-        self.dateModified = dateModified
+        self.date_created = date_created
+        self.date_modified = date_modified
 
-class passwordGenerator(db.Model):
+class PasswordGenerator(db.Model):
+    """Creates the PasswordGenerator table in the database."""
     id = db.Column(db.Integer, primary_key=True)
     algorithim = db.Column(db.String(100))
     length = db.Column(db.Integer)
@@ -78,53 +100,117 @@ class passwordGenerator(db.Model):
     useNumbers = db.Column(db.Boolean)
     useSpeicalChars = db.Column(db.Boolean)
 
-class encryptionHandler(db.Model):
+class EncryptionHandler(db.Model):
+    """Creates the EncryptionHandler table in the database."""
     id = db.Column(db.Integer, primary_key=True)
     algorithmType = db.Column(db.String(100))
     encryptionKey = db.Column(db.String(100))
 
 with bitwiz.app_context():
-    if not path.exists(dbName):
+    if not path.exists(DB_NAME):
         db.create_all()
 
-def currentTime():
+def current_time():
     """Returns the current time formatted to year, month, date and time."""
-    dateTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    return dateTime
+    date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return date_time
+
+def pad(data):
+    """This function will pad the data to ensure it is a multiple of 16 bytes."""
+    block_size = 16
+    padding_length = block_size - (len(data) % block_size)
+    padding = bytes([padding_length]) * padding_length
+    return data + padding
+
+def pad_des(data):
+    """This function will pad the data to ensure it is a multiple of 8 bytes."""
+    block_size = 8
+    padding_length = block_size - (len(data) % block_size)
+    padding = bytes([padding_length]) * padding_length
+    return data + padding
+
+def encrypt_password(password, algorithm_choice):
+    """This function will encrypt the user's password with the chosen algorithm."""
+
+    # the users message will be encrypted with the chosen algorithm
+    if algorithm_choice == "AES":
+        # AES encryption
+        # Pad the message to ensure it is a multiple of 16 bytes
+        padded_message = pad(password.encode())
+        # create a new AES object
+        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
+        # encrypt the message
+        encrypted_message = aes_object.encrypt(padded_message)
+        ciphertext = base64.b64encode(encrypted_message)
+        # print the encrypted message
+        return ciphertext
+    
+    elif algorithm_choice == "DES":
+        # DES encryption
+        # Pad the message to ensure it is a multiple of 8 bytes
+        padded_message = pad(password.encode())
+        # create a new DES object
+        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
+        # encrypt the message
+        encrypted_message = des_object.encrypt(padded_message)
+        ciphertext = base64.b64encode(encrypted_message)
+        # print the encrypted message
+        #   print("Your message encrypted with DES is: ")
+        #   print(ciphertext)
+        return ciphertext
+    
+    elif algorithm_choice == "RSA":
+        # RSA encryption
+        # Generate a random key pair for RSA (public and private keys)
+        rsa_key = RSA.generate(2048)
+        # Extract the public key for encryption
+        rsa_public_key = rsa_key.publickey()
+        # Use PKCS1_OAEP padding
+        cipher_rsa = PKCS1_OAEP.new(rsa_public_key)
+        # Pad the message to ensure it can be encrypted properly
+        padded_message = pad(password.encode())
+        # Encrypt the message using RSA with OAEP padding
+        encrypted_message = cipher_rsa.encrypt(padded_message)
+        ciphertext = base64.b64encode(encrypted_message)
+        # Print the encrypted message
+        #    print("Your message encrypted with RSA is: ")
+        #    print(ciphertext)
+        return ciphertext
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 
 # User Loader for Login Manaager
 @login_manager.user_loader
-def load_user(id):
-    return user.query.get(id)
+def load_user(user_id):
+    """Returns the user's id."""
+    return User.query.get(user_id)
 
 @bitwiz.route('/register', methods=['POST', 'GET'])
-def indexPage():
+def index_page():
     """Renders the index page and handles new user registration."""
-    username = None
-    password = None
-    salt = None
-    question = None
-    answer = None
+    # username = None
+    # password = None
+    # salt = None
+    # question = None
+    # answer = None
 
     if request.method == 'POST':
-        newUsername = request.form.get('username')
-        newPassword = request.form.get('password')
-        newSalt = request.form.get('salt')
-        newQuestion = request.form.get('question')
-        newAnswer = request.form.get('answer')
+        new_username = request.form.get('username')
+        new_password = request.form.get('password')
+        new_salt = request.form.get('salt')
+        new_question = request.form.get('question')
+        new_answer = request.form.get('answer')
 
-        newRec = user(newUsername, newPassword, newSalt, newQuestion, newAnswer)
-        db.session.add(newRec)
+        new_rec = User(new_username, new_password, new_salt, new_question, new_answer)
+        db.session.add(new_rec)
         db.session.commit()
-        login_user(newRec, remember=True)
+        login_user(new_rec, remember=True)
 
         #TO DO -> FIGURE OUT WHAT PAGE SHOULD COME NEXT
-        return redirect(url_for('nextPage'))
+        return redirect(url_for('next_page'))
 
-    return render_template('index.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
+    return render_template('index.html', timestamp = current_time(), title = 'CMST 495 - BitWizards')
 
 @bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
 def passgeneration():
@@ -140,7 +226,7 @@ def passgeneration():
         temppassword = generate_password(uppercase, lowercase, numbers, symbols, length)
 
     return render_template('PasswordGenerator.html', passwordOutput=temppassword,
-                           timestamp=currentTime(), title='CMST 495 - BitWizards')
+                           timestamp=current_time(), title='CMST 495 - BitWizards')
 
 
 def generate_password(uppercase, lowercase, numbers, symbols, length):
@@ -190,13 +276,18 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        log_user = user.query.filter_by(username=username).first()
+        global PASSWORD_KEY_AES
+        global PASSWORD_KEY_DES
+        PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
+        PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
+
+        log_user = User.query.filter_by(username=username).first()
 
         # Check for existing user before logging in
         if log_user:
-            if log_user.encryptedPassword == password:
+            if log_user.encrypted_password == password:
                 login_user(log_user, remember=True)
-                return redirect(url_for('nextPage'))
+                return redirect(url_for('next_page'))
             else:
                 flash('Incorrect Password')
         else:
@@ -204,107 +295,159 @@ def login():
 
         # Add the logic for Login
 
-    return render_template('login.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards')
+    return render_template('login.html', timestamp = current_time(), title = 'CMST 495 - BitWizards')
 
-@bitwiz.route('/PasswordEntry', methods=['GET', 'POST'])
+@bitwiz.route('/pass_entry', methods=['GET', 'POST'])
 @login_required
-def passEntry():
+def pass_entry():
     """Renders the password entry page, and handles the management of the user's passwords."""
     if request.method == 'POST':
-        appDescName = request.form['application']
-        appUser = request.form['username']
-        appPassword = request.form['password']
-        appAlgorithm = request.form['algorithm']
+        app_desc_name = request.form['application']
+        app_user = request.form['username']
+        app_password = request.form['password']
+        app_algorithm = request.form['algorithm']
 
-        currUserId = current_user.id
+        curruser_id = current_user.id
 
-        newPass = passwordEntry(currUserId, appDescName, appUser, appPassword, None, None, datetime.now(), datetime.now())
-        db.session.add(newPass)
+        enc_pass = encrypt_password(app_password, app_algorithm)
+
+        new_pass = PasswordEntry(curruser_id, app_desc_name, app_user, enc_pass, None, None, datetime.now(), datetime.now())
+        db.session.add(new_pass)
         db.session.commit()
 
-        return redirect(url_for('queryPage', userVal = currUserId))
+        return redirect(url_for('query_page', user_val = curruser_id))
     
-    return render_template('PasswordEntry.html', timestamp = currentTime(), title = 'CMST 495 - BitWizards - Create Password')
-
+    return render_template('PasswordEntry.html', timestamp = current_time(), title = 'CMST 495 - BitWizards - Create Password')
 
 @bitwiz.route('/PrivacyPolicy', methods=['GET', 'POST'])
 def privacypage():
     """Renders the privacy page, which provides the user information about how information is stored securely."""
-    return render_template('PrivacyPolicy.html', timestamp=currentTime(), title='BitWizards Privacy Page')
+    return render_template('PrivacyPolicy.html', timestamp=current_time(), title='BitWizards Privacy Page')
 
 @bitwiz.route('/UserGuide', methods=['GET', 'POST'])
 def userguide():
-    """Renders the user guide page, which provides the user information about how to use the program."""
-    return render_template('UserGuide.html', timestamp=currentTime(), title='BitWizards User Guide')
+    """
+    Renders the user guide page, which provides the user information about how to use the program.
+    """
+    return render_template('UserGuide.html', timestamp=current_time(), title='BitWizards User Guide')
 
-@bitwiz.route('/masterReset', methods=['POST', 'GET'])
-def masterReset():
+@bitwiz.route('/master_reset', methods=['POST', 'GET'])
+def master_reset():
     """Renders the ResetMasterPass page, and handles authentication for resetting the master password."""
     if request.method == 'POST':
 
     # Get values entered in login
-        formUser = request.form['username']
+        form_user = request.form['username']
 
-        checkUser = user.query.filter_by(username=formUser).first()      
+        check_user = User.query.filter_by(username=form_user).first()      
     
-        if checkUser:
-            loggedUser = checkUser.username
-            loggedQuestion = checkUser.passwordRecoveryQuestion
-            return redirect(url_for('answerQuestion', sendUser=loggedUser, sendQuestion=loggedQuestion))
+        if check_user:
+            logged_user = check_user.username
+            logged_question = check_user.password_recovery_question
+            return redirect(url_for('answer_question', sendUser=logged_user, sendQuestion=logged_question))
         else:
             flash('User Not Found. Please try again.')
     
-    return render_template('ResetMasterPass.html', timestamp = currentTime(), title = 'Enter Username to Reset')
+    return render_template('reset.html', timestamp = current_time(), title = 'Enter Username to Reset')
 
 @bitwiz.route('/answer', methods=['POST', 'GET'])
-def answerQuestion():
+def answer_question():
     """Renders the answer page, and handles updating the user's master password after verification."""
     if request.method == 'POST':
 
-        formUser = request.form['sendUser']
-        formAnswer = request.form['security_answer']
-        formPass1 = request.form['firstPassword']
-        formPass2 = request.form['secondPassword']
+        form_user = request.form['sendUser']
+        form_answer = request.form['security_answer']
+        form_pass_1 = request.form['firstPassword']
+        form_pass_2 = request.form['secondPassword']
 
-        updateUser = user.query.filter_by(username=formUser).first()
+        update_user = User.query.filter_by(username=form_user).first()
 
-        if updateUser:
-            if updateUser.passwordRecoveryAnswer == formAnswer:
-                if formPass1 == formPass2:
-                    updateUser.encryptedPassword = formPass1
+        if update_user:
+            if update_user.password_recovery_answer == form_answer:
+                if form_pass_1 == form_pass_2:
+                    update_user.encrypted_password = form_pass_1
                     db.session.commit()
-                    return redirect(url_for('nextPage'))
+                    return redirect(url_for('next_page'))
                 else:
                     flash('Passwords did not match. Try again.')
-                    return redirect(url_for('masterReset'))
+                    return redirect(url_for('master_reset'))
             else:
                 flash('Incorrect Security Answer.')
-                return redirect(url_for('masterReset'))
+                return redirect(url_for('master_reset'))
         else:
             flash('User does not exist')
 
-    return render_template('answer.html', timestamp = currentTime(), title = 'Enter New Password')
+    return render_template('answer.html', timestamp = current_time(), title = 'Enter New Password')
 
-@bitwiz.route('/next', methods=['GET'])
+@bitwiz.route('/next', methods=['GET', 'POST'])
 @login_required
-def nextPage():
+def next_page():
     """Renders the next page."""
-    userRecord = user.query.filter_by(id=current_user.id).all()
-    passwordRecords = passwordEntry.query.filter_by(userId=current_user.id).all()
+    user_record = User.query.filter_by(id=current_user.id).all()
+    password_records = PasswordEntry.query.filter_by(user_id=current_user.id).all()
+    print(user_record)
+    print(password_records)
+
+    return render_template('next.html', user_record=user_record,
+                           password_records=password_records, timestamp=current_time(), title='Database Lookup')
+
+
+@bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
+@login_required
+def modify_password():
+    """Renders the modify password page, and receives stored data the user selected to modify."""
+    if request.method == 'GET':
+        og_title = request.args.get('title')
+        og_user = request.args.get('username')
+        og_pass = request.args.get('password')
+        og_id = request.args.get('record_id')
+
+    if request.method == 'POST':
+
+        mod_id = int(request.form.get('record_id'))
+        mod_title = request.form.get('title')
+        mod_user = request.form.get('username')
+        mod_pass = request.form.get('password')
+        mod_algo = request.form.get('algorithm')
+        mod_url = request.form.get('url')
+        mod_notes = request.form.get('notes')
+
+        encrypt_pass = encrypt_password(mod_pass, mod_algo)
+        update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
+
+        if update_pass:
+            update_pass.title = mod_title
+            update_pass.app_user = mod_user
+            #update_pass.encrypted_password = mod_pass
+            update_pass.encrypted_password = encrypt_pass
+            update_pass.associated_url = mod_url
+            update_pass.notes = mod_notes
+            update_pass.date_modified = datetime.now()
+            
+            db.session.commit()
+        
+        return redirect(url_for('next_page'))
+
+    return render_template('ModifyPassword.html', application=og_title, username=og_user, record_id=og_id,
+                           password=og_pass, timestamp=current_time(), title='Modify Entry')
+
+@bitwiz.route('/logout')
+@login_required
+def logout():
+    """Calls helper function to log out, and redirects to the login page after session is terminated."""
+    logout_user()
+    flash('You have been logged out.')
+    return redirect(url_for('login'))
+
+@bitwiz.route('/query/<int:user_val>', methods=['GET'])
+@login_required
+def query_page(user_val):
+    """Renders the queries page."""
+    all_records = PasswordEntry.query.filter_by(user_id=user_val)
 
     flash('Hello There') #TESTLINE
 
-    return render_template('next.html', userRecord = userRecord, passwordRecords = passwordRecords, timestamp = currentTime(), title = 'Database Lookup')
-
-@bitwiz.route('/query/<int:userVal>', methods=['GET'])
-@login_required
-def queryPage(userVal):
-    """Renders the next page."""
-    allRecords = passwordEntry.query.filter_by(userId=userVal)
-
-    flash('Hello There') #TESTLINE
-
-    return render_template('query.html', records=allRecords, timestamp = currentTime(), title = 'Database Query Tester')
+    return render_template('query.html', records=all_records, timestamp = current_time(), title = 'Database Query Tester')
     
 login_manager.init_app(bitwiz)
 

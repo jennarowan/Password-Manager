@@ -2,20 +2,24 @@
 <html lang="en">
 <!-- Head Tag -->
 <head>
-	<meta charset="utf-8">
-	<title>{{ title }}</title>
-	<link rel="stylesheet" type= "text/css" href="{{ url_for('static',filename='styles/style.css') }}">
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/style.css') }}">
 </head>
 <body>
     <nav>
         <ul>
-            <!--create a navigation block-->
-            <li><a href="/">Home</a></li>
-            <li><a href="/register">Register</a></li>
-            <li><a href="/PasswordGenerator">Password Generation</a></li>
-            <li><a href="/PasswordEntry">Password Manager</a></li>
+            <!-- Always visible navigation links -->
+            <li><a href="/next">Home</a></li>
             <li><a href="/PrivacyPolicy">Privacy Page</a></li>
             <li><a href="/UserGuide">User Guide</a></li>
+            <li><a href="/PasswordGenerator">Password Generation</a></li>
+            {% if current_user.is_authenticated %}
+                <!-- Navigation links for logged-in users -->
+                <li><a href="/pass_entry">Password Entry</a></li>
+                 <li><a href="/next">Password Manager</a></li>
+                <li><a href="/logout">Logout</a></li>
+            {% endif %}
         </ul>
     </nav>
     <table class="headTable">
