@@ -196,8 +196,6 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
         decrypted_bytes = aes_object.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
 
-        print(f"Decypted AES password: {password}") # TESTLINE
-
         return password
     
     elif algorithm_choice == "DES":
@@ -351,8 +349,14 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
+        # Set the global password key
+        global PASSWORD_KEY_AES
+        global PASSWORD_KEY_DES
+        global PASSWORD_KEY_RSA
+
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
+        PASSWORD_KEY_RSA = pad(str.encode(request.form['password'])) # NEEDS ADJUSTMENT
 
         log_user = User.query.filter_by(username=username).first()
 
@@ -469,8 +473,6 @@ def next_page():
         user_id=current_user.id).all()
     print(user_record)
     print(password_records)
-
-    decrypt_password(password_records[0].encrypted_password, password_records[0].encryption_method) # TESTLINE
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, timestamp=current_time(), title='Database Lookup')
