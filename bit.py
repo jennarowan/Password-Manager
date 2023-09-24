@@ -67,16 +67,18 @@ class PasswordEntry(db.Model):
     title = db.Column(db.String(100))
     app_user = db.Column(db.String(100))
     encrypted_password = db.Column(db.String(100))
+    encryption_method = db.Column(db.String(100))
     associated_url = db.Column(db.String(100))
     notes = db.Column(db.String(400))
     date_created = db.Column(db.DateTime)
     date_modified = db.Column(db.DateTime)
 
-    def __init__(self, user_id, title, app_user, encrypted_password, associated_url, notes, date_created, date_modified):
+    def __init__(self, user_id, title, app_user, encrypted_password, encryption_method, associated_url, notes, date_created, date_modified):
         self.user_id = user_id
         self.title = title
         self.app_user = app_user
         self.encrypted_password = encrypted_password
+        self.encryption_method = encryption_method
         self.associated_url = associated_url
         self.notes = notes
         self.date_created = date_created
@@ -133,14 +135,14 @@ def pad_des(data):
     return data + padding
 
 
-def encrypt_password(password, algorithm_choice):
-    """This function will encrypt the user's password with the chosen algorithm."""
+def encrypt_text(text_to_encrypt, algorithm_choice):
+    """This function will encrypt the provided string with the chosen algorithm."""
 
     # the users message will be encrypted with the chosen algorithm
     if algorithm_choice == "AES":
         # AES encryption
         # Pad the message to ensure it is a multiple of 16 bytes
-        padded_message = pad(password.encode())
+        padded_message = pad(text_to_encrypt.encode())
         # create a new AES object
         aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
         # encrypt the message
@@ -152,7 +154,7 @@ def encrypt_password(password, algorithm_choice):
     elif algorithm_choice == "DES":
         # DES encryption
         # Pad the message to ensure it is a multiple of 8 bytes
-        padded_message = pad(password.encode())
+        padded_message = pad(text_to_encrypt.encode())
         # create a new DES object
         des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
         # encrypt the message
@@ -171,10 +173,9 @@ def encrypt_password(password, algorithm_choice):
         rsa_public_key = rsa_key.publickey()
         # Use PKCS1_OAEP padding
         cipher_rsa = PKCS1_OAEP.new(rsa_public_key)
-        global PASSWORD_KEY_RSA
         PASSWORD_KEY_RSA = cipher_rsa
         # Pad the message to ensure it can be encrypted properly
-        padded_message = pad(password.encode())
+        padded_message = pad(text_to_encrypt.encode())
         # Encrypt the message using RSA with OAEP padding
         encrypted_message = cipher_rsa.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
@@ -184,28 +185,63 @@ def encrypt_password(password, algorithm_choice):
         return ciphertext
 
 
-def decrypt_password(ciphertext, algorithm_choice):
+def decrypt_password(ciphertext, encrypted_algorithm_choice):
     """This function will decrypt the encrypted password with the chosen algorithm."""
+
+    algorithm_choice = decrypt_algorithm_choice(encrypted_algorithm_choice)
 
     if algorithm_choice == "AES":
         # AES decryption
         aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
         decrypted_bytes = aes_object.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
-        print(password)
+
         return password
+    
     elif algorithm_choice == "DES":
         # DES decryption
         des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
         decrypted_bytes = des_object.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
         return password
+    
     elif algorithm_choice == "RSA":
         # RSA decryption
         cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
         decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
         return password
+    
+
+def decrypt_algorithm_choice(encrypted_algorithm_choice):
+    """
+    This function will decrypt the encrypted algorithm choice 
+    that was used with the stored password.
+
+    It will do so by trying each decryption method until the
+    correct one is found.
+    """
+
+    # Try AES decryption
+    aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
+    decrypted_bytes = aes_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+    if algorithm_choice == "AES":
+        return algorithm_choice
+
+    # Try DES decryption
+    des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
+    decrypted_bytes = des_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+    if algorithm_choice == "DES":
+        return algorithm_choice
+
+    # Try RSA decryption
+    cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
+    decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
+    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+    if algorithm_choice == "RSA":
+        return algorithm_choice
 
 
 login_manager = LoginManager()
@@ -313,10 +349,14 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
+        # Set the global password key
         global PASSWORD_KEY_AES
         global PASSWORD_KEY_DES
+        global PASSWORD_KEY_RSA
+
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
+        PASSWORD_KEY_RSA = pad(str.encode(request.form['password'])) # NEEDS ADJUSTMENT
 
         log_user = User.query.filter_by(username=username).first()
 
@@ -347,10 +387,11 @@ def pass_entry():
 
         curruser_id = current_user.id
 
-        enc_pass = encrypt_password(app_password, app_algorithm)
+        enc_pass = encrypt_text(app_password, app_algorithm)
+        enc_algorithm = encrypt_text(app_algorithm, app_algorithm)
 
         new_pass = PasswordEntry(curruser_id, app_desc_name, app_user,
-                                 enc_pass, None, None, datetime.now(), datetime.now())
+                                 enc_pass, enc_algorithm, None, None, datetime.now(), datetime.now())
         db.session.add(new_pass)
         db.session.commit()
 
@@ -457,7 +498,7 @@ def modify_password():
         mod_url = request.form.get('url')
         mod_notes = request.form.get('notes')
 
-        encrypt_pass = encrypt_password(mod_pass, mod_algo)
+        encrypt_pass = encrypt_text(mod_pass, mod_algo)
         update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
 
         if update_pass:
