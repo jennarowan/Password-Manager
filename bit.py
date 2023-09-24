@@ -173,7 +173,6 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         rsa_public_key = rsa_key.publickey()
         # Use PKCS1_OAEP padding
         cipher_rsa = PKCS1_OAEP.new(rsa_public_key)
-        global PASSWORD_KEY_RSA
         PASSWORD_KEY_RSA = cipher_rsa
         # Pad the message to ensure it can be encrypted properly
         padded_message = pad(text_to_encrypt.encode())
@@ -186,8 +185,10 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         return ciphertext
 
 
-def decrypt_password(ciphertext, algorithm_choice):
+def decrypt_password(ciphertext, encrypted_algorithm_choice):
     """This function will decrypt the encrypted password with the chosen algorithm."""
+
+    algorithm_choice = decrypt_algorithm_choice(encrypted_algorithm_choice)
 
     if algorithm_choice == "AES":
         # AES decryption
@@ -208,6 +209,46 @@ def decrypt_password(ciphertext, algorithm_choice):
         decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
         return password
+    
+
+def decrypt_algorithm_choice(encrypted_algorithm_choice):
+    """
+    This function will decrypt the encrypted algorithm choice 
+    that was used with the stored password.
+
+    It will do so by trying each decryption method until the
+    correct one is found.
+    """
+
+    # Try AES decryption
+    try:
+        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
+        decrypted_bytes = aes_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+        if algorithm_choice == "AES":
+            return algorithm_choice
+    except:
+        pass
+
+    # Try DES decryption
+    try:
+        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
+        decrypted_bytes = des_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+        if algorithm_choice == "DES":
+            return algorithm_choice
+    except:
+        pass
+
+    # Try RSA decryption
+    try:
+        cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
+        decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
+        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+        if algorithm_choice == "RSA":
+            return algorithm_choice
+    except:
+        pass
 
 
 login_manager = LoginManager()
@@ -315,8 +356,6 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        global PASSWORD_KEY_AES
-        global PASSWORD_KEY_DES
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
 
@@ -350,9 +389,10 @@ def pass_entry():
         curruser_id = current_user.id
 
         enc_pass = encrypt_text(app_password, app_algorithm)
+        enc_algorithm = encrypt_text(app_algorithm, app_algorithm)
 
         new_pass = PasswordEntry(curruser_id, app_desc_name, app_user,
-                                 enc_pass, None, None, datetime.now(), datetime.now())
+                                 enc_pass, enc_algorithm, None, None, datetime.now(), datetime.now())
         db.session.add(new_pass)
         db.session.commit()
 
