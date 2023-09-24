@@ -3,15 +3,18 @@ This file will contain all of the implemented encryption algorithms like AES, RS
 and Blowfish.
 """
 
+# import the cryptography library to use the encryption algorithms
+from Crypto.Cipher import AES, DES, PKCS1_OAEP
+from Crypto.PublicKey import RSA
+import base64
 import random
 import sys
-import base64
 
-# import the cryptography library to use the encryption algorithms
-from Crypto.Cipher import AES
-from Crypto.Cipher import DES
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
+# Define master keys for each algorithm
+AES_MASTER_KEY = b'\x01\x23\x45\x67\x89\xab\xcd\xef\xfe\xdc\xba\x98\x76\x54\x32\x10'
+DES_MASTER_KEY = b'\x01\x23\x45\x67\x89\xab\xcd\xef'
+RSA_KEY = RSA.generate(2048)
+
 
 def pad(data):
     """This function will pad the data to ensure it is a multiple of 16 bytes."""
@@ -21,52 +24,69 @@ def pad(data):
     return data + padding
 
 
+def unpad(data):
+    padding_length = data[-1]
+    return data[:-padding_length]
+
+
 def encrypt_password(password, algorithm_choice):
     """This function will encrypt the user's password with the chosen algorithm."""
 
-    # the users message will be encrypted with the chosen algorithm
     if algorithm_choice == "AES":
         # AES encryption
-        # generate a random key for AES
-        aes_key = bytes([random.randint(0, 0xFF) for i in range(16)])
-        # Pad the message to ensure it is a multiple of 16 bytes
+        aes_object = AES.new(AES_MASTER_KEY, AES.MODE_ECB)
         padded_message = pad(password.encode())
-        # create a new AES object
-        aes_object = AES.new(aes_key, AES.MODE_ECB)
-        # encrypt the message
         encrypted_message = aes_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        # print the encrypted message
         return ciphertext
     elif algorithm_choice == "DES":
         # DES encryption
-        # generate a random key for DES
-        des_key = bytes([random.randint(0, 0xFF) for i in range(8)])
-        # Pad the message to ensure it is a multiple of 8 bytes
+        des_object = DES.new(DES_MASTER_KEY, DES.MODE_ECB)
         padded_message = pad(password.encode())
-        # create a new DES object
-        des_object = DES.new(des_key, DES.MODE_ECB)
-        # encrypt the message
         encrypted_message = des_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        # print the encrypted message
-        print("Your message encrypted with DES is: ")
-        print(ciphertext)
         return ciphertext
     elif algorithm_choice == "RSA":
         # RSA encryption
-        # Generate a random key pair for RSA (public and private keys)
-        rsa_key = RSA.generate(2048)
-        # Extract the public key for encryption
-        rsa_public_key = rsa_key.publickey()
-        # Use PKCS1_OAEP padding
+        rsa_public_key = RSA_KEY.publickey()
         cipher_rsa = PKCS1_OAEP.new(rsa_public_key)
-        # Pad the message to ensure it can be encrypted properly
         padded_message = pad(password.encode())
-        # Encrypt the message using RSA with OAEP padding
         encrypted_message = cipher_rsa.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        # Print the encrypted message
-        print("Your message encrypted with RSA is: ")
-        print(ciphertext)
         return ciphertext
+
+
+def decrypt_password(ciphertext, algorithm_choice):
+    """This function will decrypt the encrypted password with the chosen algorithm."""
+
+    if algorithm_choice == "AES":
+        # AES decryption
+        aes_object = AES.new(AES_MASTER_KEY, AES.MODE_ECB)
+        decrypted_bytes = aes_object.decrypt(base64.b64decode(ciphertext))
+        password = unpad(decrypted_bytes).decode('utf-8')
+        return password
+    elif algorithm_choice == "DES":
+        # DES decryption
+        des_object = DES.new(DES_MASTER_KEY, DES.MODE_ECB)
+        decrypted_bytes = des_object.decrypt(base64.b64decode(ciphertext))
+        password = unpad(decrypted_bytes).decode('utf-8')
+        return password
+    elif algorithm_choice == "RSA":
+        # RSA decryption
+        cipher_rsa = PKCS1_OAEP.new(RSA_KEY)
+        decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(ciphertext))
+        password = unpad(decrypted_bytes).decode('utf-8')
+        return password
+
+
+# Example usage:
+algorithm_choice = "DES"  # Change this to the appropriate algorithm
+password = "Works"
+encrypted_password = encrypt_password(password, algorithm_choice)
+print("Password:", password)
+print("Encrypted password:", encrypted_password.decode())
+
+
+# Now, let's decrypt the password
+decrypted_password = decrypt_password(encrypted_password, algorithm_choice)
+print("Decrypted password:", decrypted_password)
