@@ -15,7 +15,6 @@ import base64
 import secrets
 import string
 from datetime import datetime
-import requests
 
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import login_user, login_required
@@ -32,20 +31,7 @@ PASSWORD_KEY_DES = None
 PASSWORD_KEY_RSA = None
 
 
-def is_aws():
-    """Checks if the application is running on an AWS EC2 instance."""
-    try:
-        response = requests.get(
-            'http://169.254.169.254/latest/meta-data/instance-id', timeout=1)
-        return True if response.status_code == 200 else False
-    except requests.RequestException:
-        return False
-
-
-if is_aws():
-    DB_NAME = "/home/ec2-user/CMSC-495-Project/instance/cmsc495.db"
-else:
-    DB_NAME = "cmsc495.db"  # -- This is used when doing local testing.
+DB_NAME = "cmsc495.db"  # -- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
