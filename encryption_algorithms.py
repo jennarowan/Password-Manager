@@ -29,7 +29,7 @@ def unpad(data):
     return data[:-padding_length]
 
 
-def encrypt_password(password, algorithm_choice):
+def encrypt_text(password, algorithm_choice):
     """This function will encrypt the user's password with the chosen algorithm."""
 
     if algorithm_choice == "AES":
@@ -82,7 +82,7 @@ def decrypt_password(ciphertext, algorithm_choice):
 # Example usage:
 algorithm_choice = "DES"  # Change this to the appropriate algorithm
 password = "Works"
-encrypted_password = encrypt_password(password, algorithm_choice)
+encrypted_password = encrypt_text(password, algorithm_choice)
 print("Password:", password)
 print("Encrypted password:", encrypted_password.decode())
 
