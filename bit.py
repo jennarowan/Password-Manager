@@ -195,14 +195,18 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
         aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
         decrypted_bytes = aes_object.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
-        print(password)
+
+        print(f"Decypted AES password: {password}") # TESTLINE
+
         return password
+    
     elif algorithm_choice == "DES":
         # DES decryption
         des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
         decrypted_bytes = des_object.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
         return password
+    
     elif algorithm_choice == "RSA":
         # RSA decryption
         cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
@@ -465,6 +469,8 @@ def next_page():
         user_id=current_user.id).all()
     print(user_record)
     print(password_records)
+
+    decrypt_password(password_records[0].encrypted_password, password_records[0].encryption_method) # TESTLINE
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, timestamp=current_time(), title='Database Lookup')
