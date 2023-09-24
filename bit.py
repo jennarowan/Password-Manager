@@ -221,34 +221,25 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     """
 
     # Try AES decryption
-    try:
-        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
-        decrypted_bytes = aes_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
-        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-        if algorithm_choice == "AES":
-            return algorithm_choice
-    except:
-        pass
+    aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
+    decrypted_bytes = aes_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+    if algorithm_choice == "AES":
+        return algorithm_choice
 
     # Try DES decryption
-    try:
-        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
-        decrypted_bytes = des_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
-        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-        if algorithm_choice == "DES":
-            return algorithm_choice
-    except:
-        pass
+    des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
+    decrypted_bytes = des_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+    if algorithm_choice == "DES":
+        return algorithm_choice
 
     # Try RSA decryption
-    try:
-        cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
-        decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
-        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-        if algorithm_choice == "RSA":
-            return algorithm_choice
-    except:
-        pass
+    cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
+    decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
+    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+    if algorithm_choice == "RSA":
+        return algorithm_choice
 
 
 login_manager = LoginManager()
