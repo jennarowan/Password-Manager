@@ -149,7 +149,6 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         # encrypt the message
         encrypted_message = aes_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        print(ciphertext)
         return ciphertext
 
     elif algorithm_choice == "DES":
@@ -161,9 +160,6 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         # encrypt the message
         encrypted_message = des_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        # print the encrypted message
-        #   print("Your message encrypted with DES is: ")
-        print(ciphertext)
         return ciphertext
 
     elif algorithm_choice == "RSA":
@@ -180,9 +176,6 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         # Encrypt the message using RSA with OAEP padding
         encrypted_message = cipher_rsa.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        # Print the encrypted message
-        #    print("Your message encrypted with RSA is: ")
-        #    print(ciphertext)
         return ciphertext
 
 
@@ -192,6 +185,7 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
     algorithm_choice = decrypt_algorithm_choice(encrypted_algorithm_choice)
 
     if algorithm_choice == "AES":
+
         # AES decryption
         aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
         decrypted_bytes = aes_object.decrypt(base64.b64decode(ciphertext))
@@ -200,10 +194,12 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
         return password
     
     elif algorithm_choice == "DES":
+
         # DES decryption
         des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
         decrypted_bytes = des_object.decrypt(base64.b64decode(ciphertext))
         password = unpad(decrypted_bytes).decode('utf-8')
+
         return password
     
     elif algorithm_choice == "RSA":
@@ -224,25 +220,33 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     """
 
     # Try AES decryption
-    aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
-    decrypted_bytes = aes_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
-    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-    if algorithm_choice == "AES":
-        return algorithm_choice
+    try:
+        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
+        decrypted_bytes = aes_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+        if algorithm_choice == "AES":
+            return algorithm_choice
+    except:
+        pass
+
+    print()  # TESTLINE
 
     # Try DES decryption
-    des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
-    decrypted_bytes = des_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
-    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-    if algorithm_choice == "DES":
-        return algorithm_choice
+    try:
+        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
+        decrypted_bytes = des_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+        if algorithm_choice == "DES":
+            return algorithm_choice
+    except:
+        pass
 
-    # Try RSA decryption
-    cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
-    decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
-    algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-    if algorithm_choice == "RSA":
-        return algorithm_choice
+    # # Try RSA decryption
+    # cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
+    # decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
+    # algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+    # if algorithm_choice == "RSA":
+    #     return algorithm_choice
 
 
 login_manager = LoginManager()
@@ -482,11 +486,9 @@ def next_page():
     for record in password_records:
         encryption_method = record.encryption_method
         password = record.encrypted_password
-        #plain_text = decrypt_password(password, encryption_method)
-        #print(plain_text)
 
-    print(user_record)
-    print(password_records)
+    # print(user_record)
+    # print(password_records)
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, plain_text=plain_text,
