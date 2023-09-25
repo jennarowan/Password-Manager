@@ -73,7 +73,8 @@ class PasswordEntry(db.Model):
     date_created = db.Column(db.DateTime)
     date_modified = db.Column(db.DateTime)
 
-    def __init__(self, user_id, title, app_user, encrypted_password, encryption_method, associated_url, notes, date_created, date_modified):
+    def __init__(self, user_id, title, app_user, encrypted_password, encryption_method, associated_url,
+                 notes, date_created, date_modified):
         self.user_id = user_id
         self.title = title
         self.app_user = app_user
@@ -154,7 +155,7 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
     elif algorithm_choice == "DES":
         # DES encryption
         # Pad the message to ensure it is a multiple of 8 bytes
-        padded_message = pad(text_to_encrypt.encode())
+        padded_message = pad_des(text_to_encrypt.encode())
         # create a new DES object
         des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
         # encrypt the message
@@ -162,7 +163,7 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         ciphertext = base64.b64encode(encrypted_message)
         # print the encrypted message
         #   print("Your message encrypted with DES is: ")
-        #   print(ciphertext)
+        print(ciphertext)
         return ciphertext
 
     elif algorithm_choice == "RSA":
@@ -295,8 +296,13 @@ def passgeneration():
         numbers = request.form.get('numbers')
         symbols = request.form.get('symbols')
         length = int(request.form.get('length'))
-        temppassword = generate_password(
-            uppercase, lowercase, numbers, symbols, length)
+
+        if uppercase is None and lowercase is None and numbers is None and symbols is None:
+            flash('Please select at least one option before generating a password.')
+
+        else:
+            temppassword = generate_password(
+                uppercase, lowercase, numbers, symbols, length)
 
     return render_template('PasswordGenerator.html', passwordOutput=temppassword,
                            timestamp=current_time(), title='CMST 495 - BitWizards')
@@ -356,7 +362,7 @@ def login():
 
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
-        PASSWORD_KEY_RSA = pad(str.encode(request.form['password'])) # NEEDS ADJUSTMENT
+        PASSWORD_KEY_RSA = pad(str.encode(request.form['password']))  # NEEDS ADJUSTMENT
 
         log_user = User.query.filter_by(username=username).first()
 
@@ -397,7 +403,8 @@ def pass_entry():
 
         return redirect(url_for('query_page', user_val=curruser_id))
 
-    return render_template('PasswordEntry.html', timestamp=current_time(), title='CMST 495 - BitWizards - Create Password')
+    return render_template('PasswordEntry.html', timestamp=current_time(),
+                           title='CMST 495 - BitWizards - Create Password')
 
 
 @bitwiz.route('/PrivacyPolicy', methods=['GET', 'POST'])
@@ -471,11 +478,19 @@ def next_page():
     user_record = User.query.filter_by(id=current_user.id).all()
     password_records = PasswordEntry.query.filter_by(
         user_id=current_user.id).all()
+    plain_text = ""
+    for record in password_records:
+        encryption_method = record.encryption_method
+        password = record.encrypted_password
+        #plain_text = decrypt_password(password, encryption_method)
+        #print(plain_text)
+
     print(user_record)
     print(password_records)
 
     return render_template('next.html', user_record=user_record,
-                           password_records=password_records, timestamp=current_time(), title='Database Lookup')
+                           password_records=password_records, plain_text=plain_text,
+                           timestamp=current_time(), title='Database Lookup')
 
 
 @bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
