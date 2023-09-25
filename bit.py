@@ -374,7 +374,7 @@ def login():
         if log_user:
             if log_user.encrypted_password == password:
                 login_user(log_user, remember=True)
-                return redirect(url_for('next_page'))
+                return redirect(url_for('userguide'))
             else:
                 flash('Incorrect Password')
         else:
@@ -478,20 +478,17 @@ def answer_question():
 @bitwiz.route('/next', methods=['GET', 'POST'])
 @login_required
 def next_page():
-    """Renders the next page."""
+    """Renders the next page, and shows decrypted password information."""
     user_record = User.query.filter_by(id=current_user.id).all()
     password_records = PasswordEntry.query.filter_by(
         user_id=current_user.id).all()
-    plain_text = ""
     for record in password_records:
         encryption_method = record.encryption_method
         password = record.encrypted_password
-
-    # print(user_record)
-    # print(password_records)
+        record.plain_text = decrypt_password(password, encryption_method)
 
     return render_template('next.html', user_record=user_record,
-                           password_records=password_records, plain_text=plain_text,
+                           password_records=password_records, plain_text=record.plain_text,
                            timestamp=current_time(), title='Database Lookup')
 
 
