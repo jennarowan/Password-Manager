@@ -515,19 +515,36 @@ def modify_password():
         mod_url = request.form.get('url')
         mod_notes = request.form.get('notes')
 
-        encrypt_pass = encrypt_text(mod_pass, mod_algo)
-        update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
+        if 'modify' in request.form:
+            encrypt_pass = encrypt_text(mod_pass, mod_algo)
+            update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
 
-        if update_pass:
-            update_pass.title = mod_title
-            update_pass.app_user = mod_user
-            # update_pass.encrypted_password = mod_pass
-            update_pass.encrypted_password = encrypt_pass
-            update_pass.associated_url = mod_url
-            update_pass.notes = mod_notes
-            update_pass.date_modified = datetime.now()
+            if update_pass:
+                update_pass.title = mod_title
+                update_pass.app_user = mod_user
+                update_pass.encrypted_password = encrypt_pass
+                update_pass.associated_url = mod_url
+                update_pass.notes = mod_notes
+                update_pass.date_modified = datetime.now()
 
-            db.session.commit()
+                db.session.commit()
+                flash('Password entry modified successfully.')
+
+        elif 'delete' in request.form:
+            # Handle deletion logic here
+            password_entry = PasswordEntry.query.get(mod_id)
+
+            if password_entry:
+                # Check if the password entry belongs to the currently logged-in user
+                if password_entry.user_id == current_user.id:
+                    # Delete the password entry from the database
+                    db.session.delete(password_entry)
+                    db.session.commit()
+                    flash('Password entry deleted successfully.')
+                else:
+                    flash('Unauthorized to delete this password entry.')
+            else:
+                flash('Password entry not found.')
 
         return redirect(url_for('next_page'))
 
