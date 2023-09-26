@@ -284,7 +284,7 @@ def index_page():
         login_user(new_rec, remember=True)
 
         # TO DO -> FIGURE OUT WHAT PAGE SHOULD COME NEXT
-        return redirect(url_for('next_page'))
+        return redirect(url_for('userguide'))
 
     return render_template('index.html', timestamp=current_time(), title='CMST 495 - BitWizards')
 
@@ -405,7 +405,7 @@ def pass_entry():
         db.session.add(new_pass)
         db.session.commit()
 
-        return redirect(url_for('query_page', user_val=curruser_id))
+        return redirect(url_for('next_page', user_val=curruser_id))
 
     return render_template('PasswordEntry.html', timestamp=current_time(),
                            title='CMST 495 - BitWizards - Create Password')
@@ -482,13 +482,16 @@ def next_page():
     user_record = User.query.filter_by(id=current_user.id).all()
     password_records = PasswordEntry.query.filter_by(
         user_id=current_user.id).all()
+
+    plain_text = ""
     for record in password_records:
         encryption_method = record.encryption_method
         password = record.encrypted_password
         record.plain_text = decrypt_password(password, encryption_method)
+        plain_text = record.plain_text
 
     return render_template('next.html', user_record=user_record,
-                           password_records=password_records, plain_text=record.plain_text,
+                           password_records=password_records, plain_text=plain_text,
                            timestamp=current_time(), title='Database Lookup')
 
 
@@ -539,17 +542,6 @@ def logout():
     logout_user()
     flash('You have been logged out.')
     return redirect(url_for('login'))
-
-
-@bitwiz.route('/query/<int:user_val>', methods=['GET'])
-@login_required
-def query_page(user_val):
-    """Renders the queries page."""
-    all_records = PasswordEntry.query.filter_by(user_id=user_val)
-
-    flash('Hello There')  # TESTLINE
-
-    return render_template('query.html', records=all_records, timestamp=current_time(), title='Database Query Tester')
 
 
 login_manager.init_app(bitwiz)
