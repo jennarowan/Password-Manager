@@ -405,12 +405,7 @@ def pass_entry():
         db.session.add(new_pass)
         db.session.commit()
 
-<<<<<<< HEAD
-#        return redirect(url_for('query_page', user_val=curruser_id))
-        return redirect(url_for('next_page'))
-=======
         return redirect(url_for('next_page', user_val=curruser_id))
->>>>>>> 502922d53b5b7f0f80aff6674f101229bf9c79fc
 
     return render_template('PasswordEntry.html', timestamp=current_time(),
                            title='CMST 495 - BitWizards - Create Password')
