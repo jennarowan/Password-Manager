@@ -24,11 +24,14 @@ from Crypto.Cipher import AES
 from Crypto.Cipher import DES
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
 
 # Gathered at login, used as encryption key
 PASSWORD_KEY_AES = None
 PASSWORD_KEY_DES = None
 PASSWORD_KEY_RSA = None
+PASSWORD_KEY_BLOWFISH = None
 
 
 DB_NAME = "cmsc495.db"  # -- This is used when doing local testing.
@@ -162,20 +165,25 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         ciphertext = base64.b64encode(encrypted_message)
         return ciphertext
 
-    elif algorithm_choice == "RSA":
-        # RSA encryption
-        # Generate a random key pair for RSA (public and private keys)
-        rsa_key = RSA.generate(2048)
-        # Extract the public key for encryption
-        rsa_public_key = rsa_key.publickey()
-        # Use PKCS1_OAEP padding
-        cipher_rsa = PKCS1_OAEP.new(rsa_public_key)
-        PASSWORD_KEY_RSA = cipher_rsa
-        # Pad the message to ensure it can be encrypted properly
-        padded_message = pad(text_to_encrypt.encode())
-        # Encrypt the message using RSA with OAEP padding
-        encrypted_message = cipher_rsa.encrypt(padded_message)
+    elif algorithm_choice == "Blowfish":
+        # Blowfish encryption
+        key = PASSWORD_KEY_BLOWFISH  # Replace with your Blowfish key
+        iv = b'12345678'  # Initialization Vector (IV) - Change as needed
+
+        # Create a Blowfish cipher object
+        cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv))
+        encryptor = cipher.encryptor()
+
+        # Pad the message using PKCS7 padding
+        padder = padding.PKCS7(64).padder()
+        padded_message = padder.update(
+            text_to_encrypt.encode()) + padder.finalize()
+
+        # Encrypt the padded message
+        encrypted_message = encryptor.update(
+            padded_message) + encryptor.finalize()
         ciphertext = base64.b64encode(encrypted_message)
+
         return ciphertext
 
 
@@ -192,7 +200,7 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
         password = unpad(decrypted_bytes).decode('utf-8')
 
         return password
-    
+
     elif algorithm_choice == "DES":
 
         # DES decryption
@@ -201,14 +209,32 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
         password = unpad(decrypted_bytes).decode('utf-8')
 
         return password
-    
-    elif algorithm_choice == "RSA":
-        # RSA decryption
-        cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
-        decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(ciphertext))
-        password = unpad(decrypted_bytes).decode('utf-8')
+
+    elif algorithm_choice == "Blowfish":
+        # Blowfish decryption
+        key = PASSWORD_KEY_BLOWFISH  # Replace with your Blowfish key
+        iv = b'12345678'  # Initialization Vector (IV) - Change as needed
+
+        # Create a Blowfish cipher object
+        cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv))
+        decryptor = cipher.decryptor()
+
+        # Decode the ciphertext
+        encrypted_message = base64.b64decode(ciphertext)
+
+        # Decrypt the message
+        decrypted_message = decryptor.update(
+            encrypted_message) + decryptor.finalize()
+
+        # Unpad the decrypted message using PKCS7 unpadding
+        unpadder = padding.PKCS7(64).unpadder()
+        original_message = unpadder.update(
+            decrypted_message) + unpadder.finalize()
+
+        password = original_message.decode('utf-8')
+
         return password
-    
+
 
 def decrypt_algorithm_choice(encrypted_algorithm_choice):
     """
@@ -222,7 +248,8 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     # Try AES decryption
     try:
         aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
-        decrypted_bytes = aes_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+        decrypted_bytes = aes_object.decrypt(
+            base64.b64decode(encrypted_algorithm_choice))
         algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
         if algorithm_choice == "AES":
             return algorithm_choice
@@ -234,7 +261,8 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     # Try DES decryption
     try:
         des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
-        decrypted_bytes = des_object.decrypt(base64.b64decode(encrypted_algorithm_choice))
+        decrypted_bytes = des_object.decrypt(
+            base64.b64decode(encrypted_algorithm_choice))
         algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
         if algorithm_choice == "DES":
             return algorithm_choice
@@ -363,10 +391,13 @@ def login():
         global PASSWORD_KEY_AES
         global PASSWORD_KEY_DES
         global PASSWORD_KEY_RSA
+        global PASSWORD_KEY_BLOWFISH
 
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
-        PASSWORD_KEY_RSA = pad(str.encode(request.form['password']))  # NEEDS ADJUSTMENT
+        PASSWORD_KEY_RSA = pad(str.encode(
+            request.form['password']))  # NEEDS ADJUSTMENT
+        PASSWORD_KEY_BLOWFISH = str.encode(request.form['password'])
 
         log_user = User.query.filter_by(username=username).first()
 
