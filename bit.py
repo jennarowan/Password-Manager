@@ -505,11 +505,12 @@ def next_page():
         encryption_method = record.encryption_method
         password = record.encrypted_password
         record.plain_text = decrypt_password(password, encryption_method)
+        plain_algo = decrypt_algorithm_choice(encryption_method)
         plain_text = record.plain_text
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, plain_text=plain_text,
-                           timestamp=current_time(), title='Database Lookup')
+                           plain_algo=plain_algo ,timestamp=current_time(), title='Database Lookup')
 
 
 @bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
@@ -521,7 +522,9 @@ def modify_password():
         og_user = request.args.get('username')
         og_pass = request.args.get('password')
         og_id = request.args.get('record_id')
-
+        og_algo = request.args.get('algorithm')
+        print(og_user)
+        print(og_algo)
     if request.method == 'POST':
 
         mod_id = int(request.form.get('record_id'))
@@ -535,6 +538,7 @@ def modify_password():
         if 'modify' in request.form:
             encrypt_pass = encrypt_text(mod_pass, mod_algo)
             update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
+            encrypt_algo = encrypt_text(mod_algo, mod_algo)
 
             if update_pass:
                 update_pass.title = mod_title
@@ -543,6 +547,7 @@ def modify_password():
                 update_pass.associated_url = mod_url
                 update_pass.notes = mod_notes
                 update_pass.date_modified = datetime.now()
+                update_pass.encryption_method = encrypt_algo
 
                 db.session.commit()
                 flash('Password entry modified successfully.')
@@ -566,7 +571,7 @@ def modify_password():
         return redirect(url_for('next_page'))
 
     return render_template('ModifyPassword.html', application=og_title, username=og_user, record_id=og_id,
-                           password=og_pass, timestamp=current_time(), title='Modify Entry')
+                           password=og_pass, algorithm=og_algo, timestamp=current_time(), title='Modify Entry')
 
 
 @bitwiz.route('/logout')

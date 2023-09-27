@@ -11,10 +11,14 @@
                       data-record-title="{{ record.title }}"
                       data-record-username="{{ record.app_user }}"
                       data-record-password="{{ record.plain_text }}"
-                      data-record-url="{{ record.associated_url }}" data-record-notes="{{ record.notes }}">
+                      data-record-url="{{ record.associated_url }}" 
+                      data-record-notes="{{ record.notes }}"
+                      data-record-algorithm="{{ record.plain_algo }}">
                 Username: {{ record.app_user }}</span> <br>
             Title: {{ record.title }}<br>
             Password: {{ record.plain_text }}<br>
+            <!-- ENCRYPTION DISPLAY IS MESSED UP -->
+            Encryption: {{ record.plain_algo }}<br>
             URL: {{ record.associated_url }}<br>
             Notes: {{ record.notes }}<br>
             <br>
@@ -35,13 +39,15 @@
                 var recordPassword = this.getAttribute('data-record-password');
                 var recordUrl = this.getAttribute('data-record-url');
                 var recordNotes = this.getAttribute('data-record-notes');
+                var recordAlgorithm = this.getAttribute('data-record-algorithm');
 
              window.location.href = '/ModifyPassword?record_id=' + recordId +
                 '&title=' + recordTitle +
                 '&username=' + recordUsername +
                 '&password=' + recordPassword +
                 '&url=' + recordUrl +
-                '&notes=' + recordNotes;
+                '&notes=' + recordNotes
+                '&algo=' + recordAlgorithm;
              });
         });
     });
