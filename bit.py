@@ -22,7 +22,6 @@ from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from Crypto.Cipher import AES
 from Crypto.Cipher import DES
-from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
@@ -30,7 +29,6 @@ from cryptography.hazmat.primitives import padding
 # Gathered at login, used as encryption key
 PASSWORD_KEY_AES = None
 PASSWORD_KEY_DES = None
-PASSWORD_KEY_RSA = None
 PASSWORD_KEY_BLOWFISH = None
 
 
@@ -265,12 +263,7 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     except:
         pass
 
-    # # Try RSA decryption
-    # cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
-    # decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
-    # algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-    # if algorithm_choice == "RSA":
-    #     return algorithm_choice
+    # INSERT BLOWFISH DECRYPTION HERE # TO DO
 
 
 login_manager = LoginManager()
@@ -386,13 +379,10 @@ def login():
         # Set the global password key
         global PASSWORD_KEY_AES
         global PASSWORD_KEY_DES
-        global PASSWORD_KEY_RSA
         global PASSWORD_KEY_BLOWFISH
 
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
-        PASSWORD_KEY_RSA = pad(str.encode(
-            request.form['password']))  # NEEDS ADJUSTMENT
         PASSWORD_KEY_BLOWFISH = str.encode(request.form['password'])
 
         log_user = User.query.filter_by(username=username).first()
