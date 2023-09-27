@@ -167,11 +167,10 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
 
     elif algorithm_choice == "Blowfish":
         # Blowfish encryption
-        key = PASSWORD_KEY_BLOWFISH  # Replace with your Blowfish key
         iv = b'12345678'  # Initialization Vector (IV) - Change as needed
 
         # Create a Blowfish cipher object
-        cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv))
+        cipher = Cipher(algorithms.Blowfish(PASSWORD_KEY_BLOWFISH), modes.CFB(iv))
         encryptor = cipher.encryptor()
 
         # Pad the message using PKCS7 padding
@@ -212,11 +211,10 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
 
     elif algorithm_choice == "Blowfish":
         # Blowfish decryption
-        key = PASSWORD_KEY_BLOWFISH  # Replace with your Blowfish key
         iv = b'12345678'  # Initialization Vector (IV) - Change as needed
 
         # Create a Blowfish cipher object
-        cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv))
+        cipher = Cipher(algorithms.Blowfish(PASSWORD_KEY_BLOWFISH), modes.CFB(iv))
         decryptor = cipher.decryptor()
 
         # Decode the ciphertext
@@ -255,8 +253,6 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
             return algorithm_choice
     except:
         pass
-
-    print()  # TESTLINE
 
     # Try DES decryption
     try:
