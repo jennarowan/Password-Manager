@@ -512,7 +512,7 @@ def next_page():
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, plain_text=plain_text,
-                           plain_algo=plain_algo,timestamp=current_time(), title='Database Lookup')
+                           plain_algo=plain_algo ,timestamp=current_time(), title='Database Lookup')
 
 
 @bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
