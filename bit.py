@@ -234,7 +234,7 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
 
 def decrypt_algorithm_choice(encrypted_algorithm_choice):
     """
-    This function will decrypt the encrypted algorithm choice 
+    This function will decrypt the encrypted algorithm choice
     that was used with the stored password.
 
     It will do so by trying each decryption method until the
@@ -501,12 +501,14 @@ def next_page():
         user_id=current_user.id).all()
 
     plain_text = ""
+    plain_algo = ""
     for record in password_records:
         encryption_method = record.encryption_method
         password = record.encrypted_password
         record.plain_text = decrypt_password(password, encryption_method)
-        plain_algo = decrypt_algorithm_choice(encryption_method)
+        record.plain_algo = decrypt_algorithm_choice(encryption_method)
         plain_text = record.plain_text
+        plain_algo= record.plain_algo
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, plain_text=plain_text,
@@ -528,7 +530,7 @@ def modify_password():
     if request.method == 'POST':
 
         mod_id = int(request.form.get('record_id'))
-        mod_title = request.form.get('title')
+        #mod_title = request.form.get('title')
         mod_user = request.form.get('username')
         mod_pass = request.form.get('password')
         mod_algo = request.form.get('algorithm')
@@ -541,7 +543,7 @@ def modify_password():
             encrypt_algo = encrypt_text(mod_algo, mod_algo)
 
             if update_pass:
-                update_pass.title = mod_title
+                #update_pass.title = mod_title
                 update_pass.app_user = mod_user
                 update_pass.encrypted_password = encrypt_pass
                 update_pass.associated_url = mod_url

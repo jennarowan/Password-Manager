@@ -15,9 +15,8 @@
                       data-record-notes="{{ record.notes }}"
                       data-record-algorithm="{{ record.plain_algo }}">
                 Username: {{ record.app_user }}</span> <br>
-            Title: {{ record.title }}<br>
+            Application: {{ record.title }}<br>
             Password: {{ record.plain_text }}<br>
-            <!-- ENCRYPTION DISPLAY IS MESSED UP -->
             Encryption: {{ record.plain_algo }}<br>
             URL: {{ record.associated_url }}<br>
             Notes: {{ record.notes }}<br>
@@ -45,9 +44,9 @@
                 '&title=' + recordTitle +
                 '&username=' + recordUsername +
                 '&password=' + recordPassword +
+                '&algorithm=' + recordAlgorithm;
                 '&url=' + recordUrl +
                 '&notes=' + recordNotes
-                '&algo=' + recordAlgorithm;
              });
         });
     });
