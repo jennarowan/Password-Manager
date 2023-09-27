@@ -22,7 +22,6 @@ from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from Crypto.Cipher import AES
 from Crypto.Cipher import DES
-from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
@@ -30,7 +29,6 @@ from cryptography.hazmat.primitives import padding
 # Gathered at login, used as encryption key
 PASSWORD_KEY_AES = None
 PASSWORD_KEY_DES = None
-PASSWORD_KEY_RSA = None
 PASSWORD_KEY_BLOWFISH = None
 
 
@@ -167,11 +165,10 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
 
     elif algorithm_choice == "Blowfish":
         # Blowfish encryption
-        key = PASSWORD_KEY_BLOWFISH  # Replace with your Blowfish key
         iv = b'12345678'  # Initialization Vector (IV) - Change as needed
 
         # Create a Blowfish cipher object
-        cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv))
+        cipher = Cipher(algorithms.Blowfish(PASSWORD_KEY_BLOWFISH), modes.CFB(iv))
         encryptor = cipher.encryptor()
 
         # Pad the message using PKCS7 padding
@@ -212,11 +209,10 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
 
     elif algorithm_choice == "Blowfish":
         # Blowfish decryption
-        key = PASSWORD_KEY_BLOWFISH  # Replace with your Blowfish key
         iv = b'12345678'  # Initialization Vector (IV) - Change as needed
 
         # Create a Blowfish cipher object
-        cipher = Cipher(algorithms.Blowfish(key), modes.CFB(iv))
+        cipher = Cipher(algorithms.Blowfish(PASSWORD_KEY_BLOWFISH), modes.CFB(iv))
         decryptor = cipher.decryptor()
 
         # Decode the ciphertext
@@ -256,8 +252,6 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     except:
         pass
 
-    print()  # TESTLINE
-
     # Try DES decryption
     try:
         des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
@@ -269,12 +263,7 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     except:
         pass
 
-    # # Try RSA decryption
-    # cipher_rsa = PKCS1_OAEP.new(PASSWORD_KEY_RSA)
-    # decrypted_bytes = cipher_rsa.decrypt(base64.b64decode(encrypted_algorithm_choice))
-    # algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-    # if algorithm_choice == "RSA":
-    #     return algorithm_choice
+    # INSERT BLOWFISH DECRYPTION HERE # TO DO
 
 
 login_manager = LoginManager()
@@ -390,13 +379,10 @@ def login():
         # Set the global password key
         global PASSWORD_KEY_AES
         global PASSWORD_KEY_DES
-        global PASSWORD_KEY_RSA
         global PASSWORD_KEY_BLOWFISH
 
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
-        PASSWORD_KEY_RSA = pad(str.encode(
-            request.form['password']))  # NEEDS ADJUSTMENT
         PASSWORD_KEY_BLOWFISH = str.encode(request.form['password'])
 
         log_user = User.query.filter_by(username=username).first()
@@ -519,11 +505,12 @@ def next_page():
         encryption_method = record.encryption_method
         password = record.encrypted_password
         record.plain_text = decrypt_password(password, encryption_method)
+        plain_algo = decrypt_algorithm_choice(encryption_method)
         plain_text = record.plain_text
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, plain_text=plain_text,
-                           timestamp=current_time(), title='Database Lookup')
+                           plain_algo=plain_algo ,timestamp=current_time(), title='Database Lookup')
 
 
 @bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
@@ -535,7 +522,9 @@ def modify_password():
         og_user = request.args.get('username')
         og_pass = request.args.get('password')
         og_id = request.args.get('record_id')
-
+        og_algo = request.args.get('algorithm')
+        print(og_user)
+        print(og_algo)
     if request.method == 'POST':
 
         mod_id = int(request.form.get('record_id'))
@@ -549,6 +538,7 @@ def modify_password():
         if 'modify' in request.form:
             encrypt_pass = encrypt_text(mod_pass, mod_algo)
             update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
+            encrypt_algo = encrypt_text(mod_algo, mod_algo)
 
             if update_pass:
                 update_pass.title = mod_title
@@ -557,6 +547,7 @@ def modify_password():
                 update_pass.associated_url = mod_url
                 update_pass.notes = mod_notes
                 update_pass.date_modified = datetime.now()
+                update_pass.encryption_method = encrypt_algo
 
                 db.session.commit()
                 flash('Password entry modified successfully.')
@@ -580,7 +571,7 @@ def modify_password():
         return redirect(url_for('next_page'))
 
     return render_template('ModifyPassword.html', application=og_title, username=og_user, record_id=og_id,
-                           password=og_pass, timestamp=current_time(), title='Modify Entry')
+                           password=og_pass, algorithm=og_algo, timestamp=current_time(), title='Modify Entry')
 
 
 @bitwiz.route('/logout')
