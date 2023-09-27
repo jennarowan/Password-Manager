@@ -10,9 +10,8 @@
     <nav>
         <ul>
             <!-- Always visible navigation links -->
-            <li><a href="/">Login</a></li>
-            <li><a href="/PrivacyPolicy">Privacy Page</a></li>
             <li><a href="/UserGuide">User Guide</a></li>
+            <li><a href="/PrivacyPolicy">Privacy Page</a></li>
             <li><a href="/PasswordGenerator">Password Generation</a></li>
             {% if current_user.is_authenticated %}
                 <!-- Navigation links for logged-in users -->
@@ -20,6 +19,8 @@
                  <li><a href="/next">Password Manager</a></li>
                 <li><a href="/logout">Logout</a></li>
                 <li>Signed In: {{ current_user.username }}</li>
+            {% else %}
+                <li><a href="/">Login</a></li>
             {% endif %}
         </ul>
     </nav>
