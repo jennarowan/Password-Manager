@@ -421,9 +421,6 @@ def login():
         # Check for existing user before logging in
         if log_user:
             if bcrypt.checkpw(password.encode(), log_user.encrypted_password):
-                print()
-                print(f"Encrypted Password: {log_user.encrypted_password}")
-                print()
                 login_user(log_user, remember=True)
                 return redirect(url_for('userguide'))
             else:
@@ -511,7 +508,7 @@ def answer_question():
         if update_user:
             if update_user.password_recovery_answer == form_answer:
                 if form_pass_1 == form_pass_2:
-                    update_user.encrypted_password = form_pass_1
+                    update_user.encrypted_password = bcrypt.hashpw(form_pass_1.encode(), bcrypt.gensalt())
                     db.session.commit()
                     return redirect(url_for('next_page'))
                 else:
