@@ -4,7 +4,11 @@
 <head>
     <meta charset="utf-8">
     <title>{{ title }}</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/style.css') }}">
+    {% if dark_mode_enabled %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/styleDark.css') }}" id="theme-style">
+    {% else %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/style.css') }}" id="theme-style">
+    {% endif %}
 </head>
 <body>
     <nav>
@@ -16,7 +20,7 @@
             {% if current_user.is_authenticated %}
                 <!-- Navigation links for logged-in users -->
                 <li><a href="/pass_entry">Password Entry</a></li>
-                 <li><a href="/next">Password Manager</a></li>
+                <li><a href="/next">Password Manager</a></li>
                 <li><a href="/logout">Logout</a></li>
                 <li>Signed In: {{ current_user.username }}</li>
             {% else %}
@@ -31,5 +35,45 @@
         {% block content %}{% endblock %}
     </div>
     <p>Current Timestamp: {{ timestamp }}</p>
+
+    <!-- Add Dark Mode Checkbox -->
+    <label for="dark-mode-checkbox">Dark Mode:</label>
+    <input type="checkbox" id="dark-mode-checkbox">
+
 </body>
 </html>
+
+<!-- JavaScript for Dark Mode Toggle -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const darkModeCheckbox = document.getElementById("dark-mode-checkbox");
+        const body = document.body;
+        const themeStyle = document.getElementById("theme-style");
+
+        // Function to toggle dark mode
+        function toggleDarkMode() {
+            if (darkModeCheckbox.checked) {
+                body.classList.add("dark-mode");
+                localStorage.setItem("darkMode", "true");
+                themeStyle.href = "{{ url_for('static', filename='styles/styleDark.css') }}";
+            } else {
+                body.classList.remove("dark-mode");
+                localStorage.setItem("darkMode", "false");
+                themeStyle.href = "{{ url_for('static', filename='styles/style.css') }}";
+            }
+        }
+
+        // Check the user's preference for dark mode from local storage
+        const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        // Initialize the theme based on user preference or stored preference
+        if (localStorage.getItem("darkMode") === "true" || prefersDarkMode) {
+            body.classList.add("dark-mode");
+            darkModeCheckbox.checked = true;
+            themeStyle.href = "{{ url_for('static', filename='styles/styleDark.css') }}";
+        }
+
+        // Add an event listener to the dark mode checkbox
+        darkModeCheckbox.addEventListener("change", toggleDarkMode);
+    });
+</script>
