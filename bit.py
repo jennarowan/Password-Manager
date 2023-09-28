@@ -14,6 +14,7 @@ from os import path
 import base64
 import secrets
 import string
+import bcrypt
 from datetime import datetime
 
 from flask import Flask, render_template, redirect, url_for, request, flash
@@ -58,8 +59,8 @@ class User(UserMixin, db.Model):
     def __init__(self, username, encrypted_password, salt, password_recovery_question,
                  password_recovery_answer):
         self.username = username
-        self.encrypted_password = encrypted_password
-        self.salt = encrypt_text(salt, "AES")
+        self.encrypted_password = bcrypt.hashpw(encrypted_password.encode(), bcrypt.gensalt())
+        self.salt = salt
         self.password_recovery_question = password_recovery_question
         self.password_recovery_answer = password_recovery_answer
 
@@ -419,7 +420,10 @@ def login():
 
         # Check for existing user before logging in
         if log_user:
-            if log_user.encrypted_password == password:
+            if bcrypt.checkpw(password.encode(), log_user.encrypted_password):
+                print()
+                print(f"Encrypted Password: {log_user.encrypted_password}")
+                print()
                 login_user(log_user, remember=True)
                 return redirect(url_for('userguide'))
             else:
