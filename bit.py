@@ -23,6 +23,8 @@ from flask_sqlalchemy import SQLAlchemy
 from Crypto.Cipher import AES
 from Crypto.Cipher import DES
 from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Cipher import CAST
+#from base64 import b64encode, b64decode
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 
@@ -30,6 +32,7 @@ from cryptography.hazmat.primitives import padding
 PASSWORD_KEY_AES = None
 PASSWORD_KEY_DES = None
 PASSWORD_KEY_BLOWFISH = None
+PASSWORD_KEY_CAST5 = None
 
 
 DB_NAME = "cmsc495.db"  # -- This is used when doing local testing.
@@ -182,7 +185,18 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
         ciphertext = base64.b64encode(encrypted_message)
 
         return ciphertext
+    
+    elif algorithm_choice == "CAST5":
+        # CAST5 encryption
+        # Pad the message to ensure it is a multiple of 8 bytes
+        padded_message = pad_des(text_to_encrypt.encode())
+        # create a new CAST5 object
+        cast5_object = CAST.new(PASSWORD_KEY_CAST5,CAST.MODE_ECB)
+        # encrypt the message
+        encrypted_message = cast5_object.encrypt(padded_message)
+        ciphertext = base64.b64encode(encrypted_message)
 
+        return ciphertext
 
 def decrypt_password(ciphertext, encrypted_algorithm_choice):
     """This function will decrypt the encrypted password with the chosen algorithm."""
@@ -230,6 +244,14 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice):
         password = original_message.decode('utf-8')
 
         return password
+    
+    elif algorithm_choice == "CAST5":
+
+        # CAST5 decryption
+        cast5_object = CAST.new(PASSWORD_KEY_CAST5, CAST.MODE_ECB)
+        decrypted_bytes = cast5_object.decrypt(base64.b64decode(ciphertext))
+        password = unpad(decrypted_bytes).decode('utf-8')
+        return password
 
 
 def decrypt_algorithm_choice(encrypted_algorithm_choice):
@@ -263,6 +285,17 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     except:
         pass
 
+        # Try CAST5 decryption
+    try:
+        cast5_object = CAST.new(PASSWORD_KEY_CAST5, CAST.MODE_ECB)
+        decrypted_bytes = cast5_object.decrypt(
+            base64.b64decode(encrypted_algorithm_choice))
+        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
+        if algorithm_choice == "CAST5":
+            return algorithm_choice
+    except:
+        pass
+
     # INSERT BLOWFISH DECRYPTION HERE # TO DO
 
 
@@ -281,11 +314,6 @@ def load_user(user_id):
 @bitwiz.route('/register', methods=['POST', 'GET'])
 def index_page():
     """Renders the index page and handles new user registration."""
-    # username = None
-    # password = None
-    # salt = None
-    # question = None
-    # answer = None
 
     if request.method == 'POST':
         new_username = request.form.get('username')
@@ -380,10 +408,12 @@ def login():
         global PASSWORD_KEY_AES
         global PASSWORD_KEY_DES
         global PASSWORD_KEY_BLOWFISH
+        global PASSWORD_KEY_CAST5
 
         PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
         PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
         PASSWORD_KEY_BLOWFISH = str.encode(request.form['password'])
+        PASSWORD_KEY_CAST5 = pad_des(str.encode(request.form['password']))
 
         log_user = User.query.filter_by(username=username).first()
 
