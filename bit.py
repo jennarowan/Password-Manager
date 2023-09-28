@@ -59,7 +59,7 @@ class User(UserMixin, db.Model):
                  password_recovery_answer):
         self.username = username
         self.encrypted_password = encrypted_password
-        self.salt = salt
+        self.salt = encrypt_text(salt, "AES")
         self.password_recovery_question = password_recovery_question
         self.password_recovery_answer = password_recovery_answer
 
