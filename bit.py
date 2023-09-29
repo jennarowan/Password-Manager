@@ -15,9 +15,9 @@ import base64
 import secrets
 import string
 import bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, session, g
 from flask_login import login_user, login_required
 from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
@@ -35,6 +35,7 @@ bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
 bitwiz.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
 bitwiz.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 # Call the db
 db = SQLAlchemy(bitwiz)
@@ -303,7 +304,6 @@ login_manager.login_view = 'login'
 
 # User Loader for Login Manaager
 
-
 @login_manager.user_loader
 def load_user(user_id):
     """Returns the user's id."""
@@ -456,6 +456,7 @@ def login():
         # Check for existing user before logging in
         if log_user:
             if bcrypt.checkpw(password.encode(), log_user.encrypted_password):
+                session.pop('last_activity', None)
                 login_user(log_user, remember=True)
                 return redirect(url_for('userguide'))
             else:
@@ -650,10 +651,30 @@ def modify_password():
                            password=og_pass, algorithm=og_algo, timestamp=current_time(), title='Modify Entry')
 
 
+@login_required
+@bitwiz.before_request
+def before_request():
+    if current_user.is_authenticated:
+        session.permanent = True
+        last_activity_time = session.get('last_activity')
+        if 'last_activity' in session and not None:
+            curr_time = datetime.now(timezone.utc)
+            time_diff = curr_time - last_activity_time
+            if time_diff.total_seconds() > 600:
+                logout_user()
+                flash('Your session has expired. You have been logged out.')
+                return redirect(url_for('login'))
+        else:
+            session['last_activity'] = datetime.now(timezone.utc)
+        session['last_activity'] = datetime.now(timezone.utc)
+
+
+
 @bitwiz.route('/logout')
 @login_required
 def logout():
     """Calls helper function to log out, and redirects to the login page after session is terminated."""
+    session.pop('last_activity', None)
     logout_user()
     flash('You have been logged out.')
     return redirect(url_for('login'))
