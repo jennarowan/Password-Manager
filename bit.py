@@ -107,11 +107,6 @@ with bitwiz.app_context():
     if not path.exists(DB_NAME):
         db.create_all()
 
-        # Add a default user to the database
-        default_user = User("jeff", "abc", "s", "a", "a")
-        db.session.add(default_user)
-        db.session.commit()
-
 
 def current_time():
     """Returns the current time formatted to year, month, date and time."""
