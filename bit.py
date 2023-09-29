@@ -580,6 +580,9 @@ def next_page():
 
         plain_text = decrypt_password(password, encryption_method)
         plain_algo = decrypt_algorithm_choice(encryption_method)
+        
+        record.plain_text = plain_text
+        record.plain_algo = plain_algo
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, plain_text=plain_text,
