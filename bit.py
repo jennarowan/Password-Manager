@@ -14,6 +14,7 @@ from os import path
 import base64
 import secrets
 import string
+import bcrypt
 from datetime import datetime, timedelta, timezone
 
 from flask import Flask, render_template, redirect, url_for, request, flash, session, g
@@ -27,13 +28,6 @@ from Crypto.Cipher import CAST
 #from base64 import b64encode, b64decode
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-
-# Gathered at login, used as encryption key
-PASSWORD_KEY_AES = None
-PASSWORD_KEY_DES = None
-PASSWORD_KEY_BLOWFISH = None
-PASSWORD_KEY_CAST5 = None
-
 
 DB_NAME = "cmsc495.db"  # -- This is used when doing local testing.
 
@@ -59,7 +53,7 @@ class User(UserMixin, db.Model):
     def __init__(self, username, encrypted_password, salt, password_recovery_question,
                  password_recovery_answer):
         self.username = username
-        self.encrypted_password = encrypted_password
+        self.encrypted_password = bcrypt.hashpw(encrypted_password.encode(), bcrypt.gensalt())
         self.salt = salt
         self.password_recovery_question = password_recovery_question
         self.password_recovery_answer = password_recovery_answer
@@ -78,12 +72,12 @@ class PasswordEntry(db.Model):
     date_created = db.Column(db.DateTime)
     date_modified = db.Column(db.DateTime)
 
-    def __init__(self, user_id, title, app_user, encrypted_password, encryption_method, associated_url,
+    def __init__(self, user_id, title, app_user, password, encryption_method, associated_url,
                  notes, date_created, date_modified):
         self.user_id = user_id
         self.title = title
         self.app_user = app_user
-        self.encrypted_password = encrypted_password
+        self.encrypted_password = password
         self.encryption_method = encryption_method
         self.associated_url = associated_url
         self.notes = notes
@@ -112,6 +106,11 @@ class EncryptionHandler(db.Model):
 with bitwiz.app_context():
     if not path.exists(DB_NAME):
         db.create_all()
+
+        # Add a default user to the database
+        default_user = User("jeff", "abc", "s", "a", "a")
+        db.session.add(default_user)
+        db.session.commit()
 
 
 def current_time():
@@ -388,6 +387,51 @@ def generate_password(uppercase, lowercase, numbers, symbols, length):
     return securepassword
 
 
+def reencrypt_passwords(user_id, password_new):
+    """Re-encrypts all passwords in the database with the new master password."""
+
+    password_entries = PasswordEntry.query.filter_by(user_id=user_id).all()
+
+    # Decrypt all passwords with the old master password
+    for password_entry in password_entries:
+
+        # Decrypt the password and algorithm using the old
+        # master password and TEMPORARILY store as plain text
+        password_entry.encrypted_password = decrypt_password(
+            password_entry.encrypted_password, password_entry.encryption_method)
+        password_entry.encryption_method = decrypt_algorithm_choice(
+            password_entry.encryption_method)
+        db.session.commit()
+
+    # Update the global password keys with the new master password
+    update_password_keys(password_new)
+
+    # Re-encrypt all passwords with the new master password
+    for password_entry in password_entries:
+
+        # Re-encrypt the password and algorithm using the new
+        # master password and store to database
+        password_entry.encryption_method = encrypt_text(
+            password_entry.encryption_method, password_entry.encryption_method)
+        password_entry.encrypted_password = encrypt_text(
+            password_entry.encrypted_password, decrypt_algorithm_choice(password_entry.encryption_method))
+        db.session.commit()        
+
+
+def update_password_keys(password):
+    """Updates the global password key variables with the provided password."""
+
+    global PASSWORD_KEY_AES
+    global PASSWORD_KEY_DES
+    global PASSWORD_KEY_BLOWFISH
+    global PASSWORD_KEY_CAST5
+
+    PASSWORD_KEY_AES = pad(str.encode(password))
+    PASSWORD_KEY_DES = pad_des(str.encode(password))
+    PASSWORD_KEY_BLOWFISH = str.encode(password)
+    PASSWORD_KEY_CAST5 = pad_des(str.encode(password))
+
+
 @bitwiz.route('/slider_update', methods=['POST', 'GET'])
 def slider():
     """Handles the password generator slider value updating on new input from user."""
@@ -404,22 +448,14 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        # Set the global password key
-        global PASSWORD_KEY_AES
-        global PASSWORD_KEY_DES
-        global PASSWORD_KEY_BLOWFISH
-        global PASSWORD_KEY_CAST5
-
-        PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
-        PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
-        PASSWORD_KEY_BLOWFISH = str.encode(request.form['password'])
-        PASSWORD_KEY_CAST5 = pad_des(str.encode(request.form['password']))
+        # Set the global password keys
+        update_password_keys(password)
 
         log_user = User.query.filter_by(username=username).first()
 
         # Check for existing user before logging in
         if log_user:
-            if log_user.encrypted_password == password:
+            if bcrypt.checkpw(password.encode(), log_user.encrypted_password):
                 session.pop('last_activity', None)
                 login_user(log_user, remember=True)
                 return redirect(url_for('userguide'))
@@ -445,11 +481,12 @@ def pass_entry():
 
         curruser_id = current_user.id
 
-        enc_pass = encrypt_text(app_password, app_algorithm)
-        enc_algorithm = encrypt_text(app_algorithm, app_algorithm)
+        # Encrypt password and algorithm
+        encrypt_pass = encrypt_text(app_password, app_algorithm)
+        encrypt_algo = encrypt_text(app_algorithm, app_algorithm)
 
         new_pass = PasswordEntry(curruser_id, app_desc_name, app_user,
-                                 enc_pass, enc_algorithm, None, None, datetime.now(), datetime.now())
+                                 encrypt_pass, encrypt_algo, None, None, datetime.now(), datetime.now())
         db.session.add(new_pass)
         db.session.commit()
 
@@ -508,8 +545,12 @@ def answer_question():
         if update_user:
             if update_user.password_recovery_answer == form_answer:
                 if form_pass_1 == form_pass_2:
-                    update_user.encrypted_password = form_pass_1
+                    update_user.encrypted_password = bcrypt.hashpw(form_pass_1.encode(), bcrypt.gensalt())
                     db.session.commit()
+
+                    # Decrypt all passwords and re-encrypt them with the new master password
+                    reencrypt_passwords(update_user.id, form_pass_1)
+                    
                     return redirect(url_for('next_page'))
                 else:
                     flash('Passwords did not match. Try again.')
@@ -534,16 +575,19 @@ def next_page():
     plain_text = ""
     plain_algo = ""
     for record in password_records:
-        encryption_method = record.encryption_method
+
         password = record.encrypted_password
-        record.plain_text = decrypt_password(password, encryption_method)
-        record.plain_algo = decrypt_algorithm_choice(encryption_method)
-        plain_text = record.plain_text
-        plain_algo= record.plain_algo
+        encryption_method = record.encryption_method
+
+        plain_text = decrypt_password(password, encryption_method)
+        plain_algo = decrypt_algorithm_choice(encryption_method)
+        
+        record.plain_text = plain_text
+        record.plain_algo = plain_algo
 
     return render_template('next.html', user_record=user_record,
                            password_records=password_records, plain_text=plain_text,
-                           plain_algo=plain_algo ,timestamp=current_time(), title='Database Lookup')
+                           plain_algo=plain_algo, timestamp=current_time(), title='Database Lookup')
 
 
 @bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
