@@ -29,13 +29,6 @@ from Crypto.Cipher import CAST
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 
-# Gathered at login, used as encryption key
-PASSWORD_KEY_AES = None
-PASSWORD_KEY_DES = None
-PASSWORD_KEY_BLOWFISH = None
-PASSWORD_KEY_CAST5 = None
-
-
 DB_NAME = "cmsc495.db"  # -- This is used when doing local testing.
 
 bitwiz = Flask(__name__)
@@ -389,6 +382,55 @@ def generate_password(uppercase, lowercase, numbers, symbols, length):
     return securepassword
 
 
+def reencrypt_passwords(user_id, password_new):
+    """Re-encrypts all passwords in the database with the new master password."""
+
+    password_entries = PasswordEntry.query.filter_by(user_id=user_id).all()
+
+    # Decrypt all passwords with the old master password
+    for password_entry in password_entries:
+
+        # Decrypt the password using the old master password
+        # and TEMPORARILY store as plain text
+        password_entry.encrypted_password = decrypt_password(
+            password_entry.encrypted_password, password_entry.encryption_method)
+        db.session.commit()
+
+    # Update the global password keys with the new master password
+    update_password_keys(password_new)
+
+    # Print the global keys
+    print(f"PASSWORD_KEY_AES is {PASSWORD_KEY_AES}")
+    print(f"PASSWORD_KEY_DES is {PASSWORD_KEY_DES}")
+    print(f"PASSWORD_KEY_BLOWFISH is {PASSWORD_KEY_BLOWFISH}")
+    print(f"PASSWORD_KEY_CAST5 is {PASSWORD_KEY_CAST5}")
+
+    # Re-encrypt all passwords with the new master password
+    for password_entry in password_entries:
+            
+        # Re-encrypt the password using the new master password
+        print(f"Old password is {password_entry.encrypted_password}")
+        print(f"Encryption method is {password_entry.encryption_method}")
+        password_entry.encrypted_password = encrypt_text(
+            password_entry.encrypted_password, password_entry.encryption_method)
+        print(f"New password is {password_entry.encrypted_password}")
+        db.session.commit()
+
+
+def update_password_keys(password):
+    """Updates the global password key variables with the provided password."""
+
+    global PASSWORD_KEY_AES
+    global PASSWORD_KEY_DES
+    global PASSWORD_KEY_BLOWFISH
+    global PASSWORD_KEY_CAST5
+
+    PASSWORD_KEY_AES = pad(str.encode(password))
+    PASSWORD_KEY_DES = pad_des(str.encode(password))
+    PASSWORD_KEY_BLOWFISH = str.encode(password)
+    PASSWORD_KEY_CAST5 = pad_des(str.encode(password))
+
+
 @bitwiz.route('/slider_update', methods=['POST', 'GET'])
 def slider():
     """Handles the password generator slider value updating on new input from user."""
@@ -405,16 +447,14 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        # Set the global password key
-        global PASSWORD_KEY_AES
-        global PASSWORD_KEY_DES
-        global PASSWORD_KEY_BLOWFISH
-        global PASSWORD_KEY_CAST5
+        # Set the global password keys
+        update_password_keys(password)
 
-        PASSWORD_KEY_AES = pad(str.encode(request.form['password']))
-        PASSWORD_KEY_DES = pad_des(str.encode(request.form['password']))
-        PASSWORD_KEY_BLOWFISH = str.encode(request.form['password'])
-        PASSWORD_KEY_CAST5 = pad_des(str.encode(request.form['password']))
+        # Print the global keys
+        print(f"PASSWORD_KEY_AES is {PASSWORD_KEY_AES}")
+        print(f"PASSWORD_KEY_DES is {PASSWORD_KEY_DES}")
+        print(f"PASSWORD_KEY_BLOWFISH is {PASSWORD_KEY_BLOWFISH}")
+        print(f"PASSWORD_KEY_CAST5 is {PASSWORD_KEY_CAST5}")
 
         log_user = User.query.filter_by(username=username).first()
 
@@ -510,6 +550,10 @@ def answer_question():
                 if form_pass_1 == form_pass_2:
                     update_user.encrypted_password = bcrypt.hashpw(form_pass_1.encode(), bcrypt.gensalt())
                     db.session.commit()
+
+                    # Decrypt all passwords and re-encrypt them with the new master password
+                    reencrypt_passwords(update_user.id, form_pass_1)
+                    
                     return redirect(url_for('next_page'))
                 else:
                     flash('Passwords did not match. Try again.')
