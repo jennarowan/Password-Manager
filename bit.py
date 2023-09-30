@@ -330,6 +330,8 @@ def index_page():
 
 @bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
 def passgeneration():
+
+    logged_in = current_user.is_authenticated
     """Renders the password generator page, and handles generating and populating random passwords."""
     temppassword = ""
     if request.method == 'POST':
@@ -348,7 +350,7 @@ def passgeneration():
                 uppercase, lowercase, numbers, symbols, length)
 
     return render_template('PasswordGenerator.html', passwordOutput=temppassword,
-                           timestamp=current_time(), title='CMST 495 - BitWizards')
+                           timestamp=current_time(), title='CMST 495 - BitWizards', logged_in=logged_in)
 
 
 def generate_password(uppercase, lowercase, numbers, symbols, length):
@@ -467,6 +469,11 @@ def login():
 @bitwiz.route('/pass_entry', methods=['GET', 'POST'])
 @login_required
 def pass_entry():
+    if 'password' in request.args:
+        passed_password = request.args.get('password')
+    else:
+        passed_password = None
+
     """Renders the password entry page, and handles the management of the user's passwords."""
     if request.method == 'POST':
         app_desc_name = request.form['application']
@@ -488,7 +495,7 @@ def pass_entry():
         return redirect(url_for('next_page', user_val=curruser_id))
 
     return render_template('PasswordEntry.html', timestamp=current_time(),
-                           title='CMST 495 - BitWizards - Create Password')
+                           title='CMST 495 - BitWizards - Create Password', passed=passed_password)
 
 
 @bitwiz.route('/PrivacyPolicy', methods=['GET', 'POST'])
