@@ -4,6 +4,8 @@
 <head>
     <meta charset="utf-8">
     <title>{{ title }}</title>
+    <!-- favicon URL (logo) -->
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
     {% if dark_mode_enabled %}
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/styleDark.css') }}" id="theme-style">
     {% else %}
@@ -11,6 +13,11 @@
     {% endif %}
 </head>
 <body>
+    <!-- Watermark for light mode -->
+    <div class="watermark" style="background-image: url('/static/images/BitWizards_logo.png');"></div>
+
+    <!-- Watermark for dark mode -->
+    <div class="watermark-dark" style="background-image: url('/static/images/BitWizards_logoBlack.png');"></div>
     <nav>
         <ul>
             <!-- Always visible navigation links -->

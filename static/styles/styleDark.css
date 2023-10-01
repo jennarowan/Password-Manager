@@ -203,3 +203,20 @@ label {
 .username-link:hover {
   text-decoration: underline;
 }
+
+
+/* Add styles for the watermark */
+.watermark-dark {
+  position: fixed;
+  top: 50%;
+  left: 38%;
+  width: 550px; /* Adjust the width as needed */
+  height: 550px; /* Adjust the height as needed */
+  opacity: 0.02;
+  background-image: url("/static/images/BitWizards_logoBlack.png");
+  background-size: contain; /* Scale the background image to fit within the watermark */
+  background-repeat: no-repeat;
+  pointer-events: none; /* Prevents the watermark from blocking interactions */
+  z-index: -1; /* Position it behind everything */
+
+}
