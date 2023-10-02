@@ -306,7 +306,7 @@ def load_user(user_id):
 
 
 @bitwiz.route('/register', methods=['POST', 'GET'])
-def index_page():
+def register_page():
     """Renders the index page and handles new user registration."""
 
     if request.method == 'POST':
@@ -322,10 +322,9 @@ def index_page():
         db.session.commit()
         login_user(new_rec, remember=True)
 
-        # TO DO -> FIGURE OUT WHAT PAGE SHOULD COME NEXT
         return redirect(url_for('userguide'))
 
-    return render_template('index.html', timestamp=current_time(), title='CMST 495 - BitWizards')
+    return render_template('register.html', timestamp=current_time(), title='CMST 495 - BitWizards')
 
 
 @bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
@@ -428,15 +427,9 @@ def update_password_keys(password):
     PASSWORD_KEY_CAST5 = pad_des(str.encode(password))
 
 
-@bitwiz.route('/slider_update', methods=['POST', 'GET'])
-def slider():
-    """Handles the password generator slider value updating on new input from user."""
-    received_data = request.data
-    return received_data
-
-
 @bitwiz.route('/', methods=['GET', 'POST'])
-@limiter.limit("3/second", override_defaults=False)
+@bitwiz.route('/index', methods=['GET', 'POST'])
+@limiter.limit('3/second', override_defaults=False)
 def login():
     """Renders the login page, and handles the user authentication."""
     if request.method == 'POST':
@@ -462,7 +455,14 @@ def login():
 
         # Add the logic for Login
 
-    return render_template('login.html', timestamp=current_time(), title='CMST 495 - BitWizards')
+    return render_template('index.html', timestamp=current_time(), title='CMST 495 - BitWizards')
+
+
+@bitwiz.route('/slider_update', methods=['POST', 'GET'])
+def slider():
+    """Handles the password generator slider value updating on new input from user."""
+    received_data = request.data
+    return received_data
 
 
 @bitwiz.route('/pass_entry', methods=['GET', 'POST'])
