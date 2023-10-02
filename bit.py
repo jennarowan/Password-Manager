@@ -193,61 +193,77 @@ def encrypt_text(text_to_encrypt, algorithm_choice):
 
         return ciphertext
 
+
+"""
+The next four methods are the decryptors for each type of encryption.
+As these are used both for decrypting the password and the encryption type
+identifier, they were turned into seperate functions.
+"""
+def aes_decrypt(ciphertext):
+    try:
+        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
+        decrypted_bytes = aes_object.decrypt(
+            base64.b64decode(ciphertext))
+        decrypted_value = unpad(decrypted_bytes).decode('utf-8')
+        return decrypted_value
+    except:
+        return 'Error'
+    
+
+def des_decrypt(ciphertext):
+    try:
+        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
+        decrypted_bytes = des_object.decrypt(
+            base64.b64decode(ciphertext))
+        decrypted_value = unpad(decrypted_bytes).decode('utf-8')
+        return decrypted_value
+    except:
+        return 'Error'
+
+
+def cast5_decrypt(ciphertext):
+    try:
+        cast5_object = CAST.new(PASSWORD_KEY_CAST5, CAST.MODE_ECB)
+        decrypted_bytes = cast5_object.decrypt(
+            base64.b64decode(ciphertext))
+        decrypted_value = unpad(decrypted_bytes).decode('utf-8')
+        return decrypted_value
+    except:
+        return 'Error'
+
+    
+def blowfish_decrypt(ciphertext):
+    try:
+        iv = b'12345678' 
+        blowfish_object = Cipher(algorithms.Blowfish(PASSWORD_KEY_BLOWFISH), modes.CFB(iv))
+        decryptor = blowfish_object.decryptor()  
+        encrypted_type = base64.b64decode(ciphertext)
+        decrypted_type = decryptor.update(
+            encrypted_type) + decryptor.finalize()
+        unpad = padding.PKCS7(64).unpadder()
+        original_type = unpad.update(
+            decrypted_type) + unpad.finalize()
+        decrypted_value = original_type.decode('UTF-8')
+        return decrypted_value
+    except:
+        return 'Error'
+
 def decrypt_password(ciphertext, encrypted_algorithm_choice):
     """This function will decrypt the encrypted password with the chosen algorithm."""
 
     algorithm_choice = decrypt_algorithm_choice(encrypted_algorithm_choice)
 
-    if algorithm_choice == "AES":
-
-        # AES decryption
-        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
-        decrypted_bytes = aes_object.decrypt(base64.b64decode(ciphertext))
-        password = unpad(decrypted_bytes).decode('utf-8')
-
-        return password
-
-    elif algorithm_choice == "DES":
-
-        # DES decryption
-        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
-        decrypted_bytes = des_object.decrypt(base64.b64decode(ciphertext))
-        password = unpad(decrypted_bytes).decode('utf-8')
-
-        return password
-
-    elif algorithm_choice == "Blowfish":
-        # Blowfish decryption
-        iv = b'12345678'  # Initialization Vector (IV) - Change as needed
-
-        # Create a Blowfish cipher object
-        cipher = Cipher(algorithms.Blowfish(PASSWORD_KEY_BLOWFISH), modes.CFB(iv))
-        decryptor = cipher.decryptor()
-
-        # Decode the ciphertext
-        encrypted_message = base64.b64decode(ciphertext)
-
-        # Decrypt the message
-        decrypted_message = decryptor.update(
-            encrypted_message) + decryptor.finalize()
-
-        # Unpad the decrypted message using PKCS7 unpadding
-        unpadder = padding.PKCS7(64).unpadder()
-        original_message = unpadder.update(
-            decrypted_message) + unpadder.finalize()
-
-        password = original_message.decode('utf-8')
-
-        return password
+    if algorithm_choice == 'AES':
+        password = aes_decrypt(ciphertext)
+    elif algorithm_choice == 'DES':
+        password = des_decrypt(ciphertext)
+    elif algorithm_choice == 'CAST5':
+        password = cast5_decrypt(ciphertext)
+    elif algorithm_choice == 'Blowfish':
+        password = blowfish_decrypt(ciphertext)    
+        
+    return password
     
-    elif algorithm_choice == "CAST5":
-
-        # CAST5 decryption
-        cast5_object = CAST.new(PASSWORD_KEY_CAST5, CAST.MODE_ECB)
-        decrypted_bytes = cast5_object.decrypt(base64.b64decode(ciphertext))
-        password = unpad(decrypted_bytes).decode('utf-8')
-        return password
-
 
 def decrypt_algorithm_choice(encrypted_algorithm_choice):
     """
@@ -258,41 +274,19 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice):
     correct one is found.
     """
 
-    # Try AES decryption
-    try:
-        aes_object = AES.new(PASSWORD_KEY_AES, AES.MODE_ECB)
-        decrypted_bytes = aes_object.decrypt(
-            base64.b64decode(encrypted_algorithm_choice))
-        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-        if algorithm_choice == "AES":
-            return algorithm_choice
-    except:
-        pass
-
-    # Try DES decryption
-    try:
-        des_object = DES.new(PASSWORD_KEY_DES, DES.MODE_ECB)
-        decrypted_bytes = des_object.decrypt(
-            base64.b64decode(encrypted_algorithm_choice))
-        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-        if algorithm_choice == "DES":
-            return algorithm_choice
-    except:
-        pass
-
-        # Try CAST5 decryption
-    try:
-        cast5_object = CAST.new(PASSWORD_KEY_CAST5, CAST.MODE_ECB)
-        decrypted_bytes = cast5_object.decrypt(
-            base64.b64decode(encrypted_algorithm_choice))
-        algorithm_choice = unpad(decrypted_bytes).decode('utf-8')
-        if algorithm_choice == "CAST5":
-            return algorithm_choice
-    except:
-        pass
-
-    # INSERT BLOWFISH DECRYPTION HERE # TO DO
-
+    # Check for AES decryption
+    if aes_decrypt(encrypted_algorithm_choice) == 'AES':
+        return 'AES'    
+    # Check for DES decryption
+    elif des_decrypt(encrypted_algorithm_choice) == 'DES':
+        return 'DES'
+    # Check for CAST5 decryption
+    elif cast5_decrypt(encrypted_algorithm_choice) == 'CAST5':
+        return 'CAST5'
+    # Check for Blowfish decryption
+    elif blowfish_decrypt(encrypted_algorithm_choice) == 'Blowfish':
+        return 'Blowfish'
+    
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -669,7 +663,6 @@ def before_request():
         else:
             session['last_activity'] = datetime.now(timezone.utc)
         session['last_activity'] = datetime.now(timezone.utc)
-
 
 
 @bitwiz.route('/logout')
