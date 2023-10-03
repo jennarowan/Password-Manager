@@ -176,9 +176,6 @@ def pad_des(data):
 
 def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
     """This function will encrypt the provided string with the chosen algorithm."""
-    print(text_to_encrypt)
-    print(algorithm_choice)
-    print(unlock_key)
 
     # the users message will be encrypted with the chosen algorithm
     if algorithm_choice == "AES":
@@ -197,19 +194,16 @@ def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
     elif algorithm_choice == "DES":
         # DES encryption
         # Pad the message to ensure it is a multiple of 8 bytes
-        padded_message = pad_des(text_to_encrypt.encode())
+        #padded_message = pad_des(text_to_encrypt.encode())
+        padded_message = pad_des(str.encode(text_to_encrypt))
         # Pad the key
-        print(unlock_key)
-        padded_key = pad_des(str.encode(unlock_key))
-        print(padded_key)
+        #padded_key = pad_des(str.encode(unlock_key))
+        padded_key = str.encode(unlock_key)
         # create a new DES object
         des_object = DES.new(padded_key, DES.MODE_ECB)
-        print(des_object)
         # encrypt the message
         encrypted_message = des_object.encrypt(padded_message)
-        print(encrypted_message)
         ciphertext = base64.b64encode(encrypted_message)
-        print(ciphertext)
         return ciphertext
 
     elif algorithm_choice == "Blowfish":
@@ -266,7 +260,7 @@ def aes_decrypt(ciphertext, pass_key):
         aes_object = AES.new(padded_key, AES.MODE_ECB)
         decoded = base64.b64decode(ciphertext)
         decrypted_bytes = aes_object.decrypt(decoded)
-        decrypted_value = unpad(decrypted_bytes).decode('utf-8')
+        decrypted_value = unpad(decrypted_bytes).decode()
         return decrypted_value
     except:
         return 'Error'
@@ -275,7 +269,8 @@ def aes_decrypt(ciphertext, pass_key):
 def des_decrypt(ciphertext, pass_key):
     """Decrypts and returns plain-text versions of DES."""
     try:
-        padded_key = pad_des(str.encode(pass_key))
+        #padded_key = pad_des(str.encode(pass_key))
+        padded_key = str.encode(pass_key)
         des_object = DES.new(padded_key, DES.MODE_ECB)
         decrypted_bytes = des_object.decrypt(
             base64.b64decode(ciphertext))
@@ -302,7 +297,8 @@ def blowfish_decrypt(ciphertext, pass_key):
     """Decrypts and returns plain-text versions of Blowfish."""
     try:
         iv = b'12345678'
-        padded_key = pad_des(str.encode(pass_key))
+        #padded_key = pad_des(str.encode(pass_key))
+        padded_key = str.encode(pass_key)
         blowfish_object = Cipher(algorithms.Blowfish(padded_key), modes.CFB(iv))
         decryptor = blowfish_object.decryptor()
         encrypted_type = base64.b64decode(ciphertext)
@@ -317,10 +313,10 @@ def blowfish_decrypt(ciphertext, pass_key):
         return 'Error'
 
 
-def decrypt_password(ciphertext, encrypted_algorithm_choice, pass_key):
+def decrypt_password(ciphertext, algorithm_choice, choice):
     """This function will decrypt the encrypted password with the chosen algorithm."""
 
-    algorithm_choice = decrypt_algorithm_choice(encrypted_algorithm_choice, GRAND_PASS)
+    pass_key = unlock_decrpytion(choice)
 
     if algorithm_choice == 'AES':
         password = aes_decrypt(ciphertext, pass_key)
@@ -334,7 +330,7 @@ def decrypt_password(ciphertext, encrypted_algorithm_choice, pass_key):
     return password
 
 
-def decrypt_algorithm_choice(encrypted_algorithm_choice, unlock_key):
+def decrypt_algorithm_choice(encrypted_algorithm_choice, choice):
     """
     This function will decrypt the encrypted algorithm choice
     that was used with the stored password.
@@ -342,7 +338,7 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice, unlock_key):
     It will do so by trying each decryption method until the
     correct one is found.
     """
-    pass_key = unlock_decrpytion('one')
+    pass_key = unlock_decrpytion(choice)
 
     # Check for AES decryption
     if aes_decrypt(encrypted_algorithm_choice, pass_key) == 'AES':
@@ -656,12 +652,14 @@ def next_page():
 
     plain_text = ""
     plain_algo = ""
+
     for record in password_records:
         password = record.encrypted_password
         encryption_method = record.encryption_method
 
-        plain_text = decrypt_password(password, encryption_method, GRAND_PASS)
-        plain_algo = decrypt_algorithm_choice(encryption_method, GRAND_PASS)
+        #plain_text = decrypt_password(password, encryption_method, GRAND_PASS)
+        plain_algo = decrypt_algorithm_choice(encryption_method, 'one')
+        plain_text = decrypt_password(password, plain_algo, 'one')
 
         record.plain_text = plain_text
         record.plain_algo = plain_algo
