@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Account Successfully Created</h1>
+<div class=login-container>
+    Your account for user <h4> {{ user }} </h4> has been successfully created.<br>
+    The master key for this account is <h4> {{ key }} </h4><br>
+    Save this key and keep it safe. You will need it to retreive your data <br>
+    if you forget your master password.
+</div>
+
+{% endblock %}

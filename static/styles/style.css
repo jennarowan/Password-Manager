@@ -111,6 +111,13 @@ label {
   color: #333; /* Dark gray text color for the entire container */
 }
 
+.notes-box {
+	width: 95%;       /* Increase the width */
+	height: 300px;
+	padding: 10px;   /* More padding */
+	text-align: start;
+}
+
 /* Password generator container style */
 .passgen-container {
   background: #f0f3f4; /* Light gray-blue background */
