@@ -112,7 +112,6 @@ with bitwiz.app_context():
 def generate_random_key():
     key_format = string.ascii_uppercase + string.ascii_lowercase + string.digits
     recovery_key = ''.join(secrets.choice(key_format) for i in range(8))
-
     return recovery_key
 
  
@@ -124,25 +123,36 @@ def generate_decryption_keys(user, password, key):
 
     new_key = EncryptionHandler(user, enc_password, enc_masterkey)
     db.session.add(new_key)
-    db.session.commit()  
+    db.session.commit() 
+
+def update_master_pass_unseen_key(user_id, master_key):
+
+    unseen_key = unlock_decrpytion('two', master_key)
+
+    new_key = EncryptionHandler.query.filter_by(user_id=user_id).first()
+    enc_password = encrypt_text(unseen_key, 'AES', GRAND_PASS)
+
+    new_key.key_one = enc_password
+
+        #update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
+        #update_pass.encrypted_password = encrypt_pass
+    db.session.commit()
 
 
-def unlock_decrpytion(selection):
+def unlock_decrpytion(selection, release_key):
 #    o_keys = User.query.filter_by(
 #        id=current_user.id).first()
 
-    d_keys = EncryptionHandler.query.filter_by(
+    keys = EncryptionHandler.query.filter_by(
         user_id=current_user.id).first()
 
     if selection == 'one':
-        padlock = d_keys.key_one
-        combo = GRAND_PASS
+        padlock = keys.key_one
 
     elif selection == 'two':
-        padlock = d_keys.key_two
-        combo = ''
-    
-    unlocked = aes_decrypt(padlock, combo)
+        padlock = keys.key_two
+
+    unlocked = aes_decrypt(padlock, release_key)
     return unlocked
 
 
@@ -176,6 +186,8 @@ def pad_des(data):
 
 def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
     """This function will encrypt the provided string with the chosen algorithm."""
+    print('WHAT IS UNLOCK KEY: =============================')
+    print(unlock_key)
 
     # the users message will be encrypted with the chosen algorithm
     if algorithm_choice == "AES":
@@ -240,18 +252,26 @@ def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
         return ciphertext
     
 
-#def encrypt_key(text_to_encrypt, unlock_key):
-#    # AES encryption
-#    # Pad the message and the key to ensure they are a multiple of 16 bytes
-#    encoded_key = pad(str.encode(unlock_key))
-#    padded_message = pad(text_to_encrypt.encode())
-#    # create a new AES object
-#    key_object = AES.new(encoded_key, AES.MODE_ECB)
-#    # encrypt the message
-#    encrypted_message = key_object.encrypt(padded_message)
-#    ciphertext = base64.b64encode(encrypted_message)
-#    return ciphertext
-
+"""
+def aes_decrypt(ciphertext, pass_key):
+    try:
+        padded_key = pad(str.encode(pass_key))
+        print('PADDED KEY: ')
+        print(padded_key)
+        aes_object = AES.new(padded_key, AES.MODE_ECB)
+        decoded = base64.b64decode(ciphertext)
+        print('DECODED: ')
+        print(decoded)
+        decrypted_bytes = aes_object.decrypt(decoded)
+        print('BYTES: ')
+        print(decrypted_bytes)
+        decrypted_value = unpad(decrypted_bytes).decode()
+        print('VALUE: ')
+        print(decrypted_value)
+        return decrypted_value
+    except:
+        return 'Error'
+"""
 
 def aes_decrypt(ciphertext, pass_key):
     """Decrypts and returns plain-text versions of AES."""
@@ -313,10 +333,16 @@ def blowfish_decrypt(ciphertext, pass_key):
         return 'Error'
 
 
-def decrypt_password(ciphertext, algorithm_choice, choice):
+def decrypt_password(ciphertext, algorithm_choice, choice, release_key):
     """This function will decrypt the encrypted password with the chosen algorithm."""
 
-    pass_key = unlock_decrpytion(choice)
+    print('===UNLOCK DETAILS===')
+    print(choice)
+    print(release_key)
+
+    pass_key = unlock_decrpytion(choice, release_key)
+    print('====PASS KEY====')
+    print(pass_key)
 
     if algorithm_choice == 'AES':
         password = aes_decrypt(ciphertext, pass_key)
@@ -330,7 +356,7 @@ def decrypt_password(ciphertext, algorithm_choice, choice):
     return password
 
 
-def decrypt_algorithm_choice(encrypted_algorithm_choice, choice):
+def decrypt_algorithm_choice(encrypted_algorithm_choice, choice, release_key):
     """
     This function will decrypt the encrypted algorithm choice
     that was used with the stored password.
@@ -338,7 +364,12 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice, choice):
     It will do so by trying each decryption method until the
     correct one is found.
     """
-    pass_key = unlock_decrpytion(choice)
+    print('RELEASE KEY: ')
+    print(release_key)
+
+    pass_key = unlock_decrpytion(choice, release_key)
+    print('DECRYPTED PASS KEY: ')
+    print(pass_key)
 
     # Check for AES decryption
     if aes_decrypt(encrypted_algorithm_choice, pass_key) == 'AES':
@@ -385,34 +416,28 @@ def generate_password(uppercase, lowercase, numbers, symbols, length):
     return securepassword
 
 
-def reencrypt_passwords(user_id, password_new):
-    """Re-encrypts all passwords in the database with the new master password."""
+#def reencrypt_passwords(user_id, password_new, redo_key):
+  #  """Re-encrypts all passwords in the database with the new master password."""
 
-    password_entries = PasswordEntry.query.filter_by(user_id=user_id).all()
+    # Pull necessary database records
+ #   password_entries = PasswordEntry.query.filter_by(user_id=user_id).all()
+ #   unseen_record = EncryptionHandler.query.filter_by(user_id=user_id).first()
 
-    # Decrypt all passwords with the old master password
-    for password_entry in password_entries:
-        # Decrypt the password and algorithm using the old
-        # master password and TEMPORARILY store as plain text
-        password_entry.encrypted_password = decrypt_password(
-            password_entry.encrypted_password, password_entry.encryption_method, SOMETHING_ELSE)
-        password_entry.encryption_method = decrypt_algorithm_choice(
-            password_entry.encryption_method, SOMETHING_ELSE)
-        db.session.commit()
+    # Unlock the unseen key using the master key
+ #   unseen_key = aes_decrypt(unseen_record.key_two, redo_key)
 
-    # Update the global password with the new master password
-    update_password(password_new)
+    # Decrypt all passwords with the unseen key
+#    for entry in password_entries:
+#        plain_algo = decrypt_algorithm_choice(entry.encryption_method, 'two', redo_key)
+#        print('PLAIN ALGORITHM: ')
+#        print(plain_algo)
+#        plain_pass = decrypt_password(entry.encrypted_password, plain_algo, 'two', redo_key)
+#       new_enc_pass = encrypt_text(plain_pass, plain_algo, unseen_key)
+#        new_enc_algo = encrypt_text(plain_algo, plain_algo, unseen_key)
 
-    # Re-encrypt all passwords with the new master password
-    for password_entry in password_entries:
-        # Re-encrypt the password and algorithm using the new
-        # master password and store to database
-        password_entry.encryption_method = encrypt_text(
-            password_entry.encryption_method, password_entry.encryption_method)
-        password_entry.encrypted_password = encrypt_text(
-            password_entry.encrypted_password,
-            decrypt_algorithm_choice(password_entry.encryption_method))
-        db.session.commit()
+#        entry.encrypted_password = new_enc_pass
+#        entry.encrypted_method = new_enc_algo
+#        db.session.commit()
 
 
 def update_password(password):
@@ -552,7 +577,7 @@ def pass_entry():
 
         curruser_id = current_user.id
 
-        unseen_key = unlock_decrpytion('one')
+        unseen_key = unlock_decrpytion('one', GRAND_PASS)
 
         # Encrypt password and algorithm
         encrypt_pass = encrypt_text(app_password, app_algorithm, unseen_key)
@@ -597,6 +622,7 @@ def master_reset():
         if check_user:
             logged_user = check_user.username
             logged_question = check_user.password_recovery_question
+
             return redirect(url_for('answer_question',
                                     sendUser=logged_user, sendQuestion=logged_question))
 
@@ -614,28 +640,37 @@ def answer_question():
         form_answer = request.form['security_answer']
         form_pass_1 = request.form['firstPassword']
         form_pass_2 = request.form['secondPassword']
+        form_master = request.form['master_key']
 
         update_user = User.query.filter_by(username=form_user).first()
 
         if update_user:
-            if update_user.password_recovery_answer == form_answer:
-                if form_pass_1 == form_pass_2:
-                    update_user.encrypted_password = bcrypt.hashpw(form_pass_1.encode(),
+            if bcrypt.checkpw(form_master.encode(), update_user.master_key):
+                if update_user.password_recovery_answer == form_answer:
+                    if form_pass_1 == form_pass_2:
+                        update_user.encrypted_password = bcrypt.hashpw(form_pass_1.encode(),
                                                                    bcrypt.gensalt())
-                    db.session.commit()
+                        db.session.commit()
 
-                    update_password(form_pass_1)
+                        session.pop('last_activity', None)
+                        login_user(update_user, remember=True)
 
-                    # Decrypt all passwords and re-encrypt them with the new master password
-                    reencrypt_passwords(update_user.id, form_pass_1)
+                        update_password(form_pass_1)
 
-                    return redirect(url_for('next_page'))
+                        update_master_pass_unseen_key(current_user.id, form_master)
+
+                        # Decrypt all passwords and re-encrypt them with the new master password
+ #                       reencrypt_passwords(update_user.id, form_pass_1, form_master)
+
+                        return redirect(url_for('next_page'))
+                    else:
+                        flash('Passwords did not match. Try again.')
+                        return redirect(url_for('master_reset'))
                 else:
-                    flash('Passwords did not match. Try again.')
+                    flash('Incorrect Security Answer.')
                     return redirect(url_for('master_reset'))
             else:
-                flash('Incorrect Security Answer.')
-                return redirect(url_for('master_reset'))
+                flash('Master Key does not match')
         else:
             flash('User does not exist')
 
@@ -646,6 +681,7 @@ def answer_question():
 @login_required
 def next_page():
     """Renders the next page, and shows decrypted password information."""
+
     user_record = User.query.filter_by(id=current_user.id).all()
     password_records = PasswordEntry.query.filter_by(
         user_id=current_user.id).all()
@@ -657,9 +693,15 @@ def next_page():
         password = record.encrypted_password
         encryption_method = record.encryption_method
 
-        #plain_text = decrypt_password(password, encryption_method, GRAND_PASS)
-        plain_algo = decrypt_algorithm_choice(encryption_method, 'one')
-        plain_text = decrypt_password(password, plain_algo, 'one')
+        print('==========GRAND PASS===========')
+        print(GRAND_PASS)
+        print('==========ENC METHOD===========')
+        print(encryption_method)        
+
+        plain_algo = decrypt_algorithm_choice(encryption_method, 'one', GRAND_PASS)
+        print('==========PLAIN ALGO===========')
+        print(plain_algo)
+        plain_text = decrypt_password(password, plain_algo, 'one', GRAND_PASS)
 
         record.plain_text = plain_text
         record.plain_algo = plain_algo
@@ -679,8 +721,7 @@ def modify_password():
         og_pass = request.args.get('password')
         og_id = request.args.get('record_id')
         og_algo = request.args.get('algorithm')
-        print(og_user)
-        print(og_algo)
+
     if request.method == 'POST':
 
         mod_id = int(request.form.get('record_id'))
@@ -692,7 +733,7 @@ def modify_password():
         mod_notes = request.form.get('notes')
 
         if 'modify' in request.form:
-            unseen_key = unlock_decrpytion('one')
+            unseen_key = unlock_decrpytion('one', GRAND_PASS)
             encrypt_pass = encrypt_text(mod_pass, mod_algo, unseen_key)
             update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
             encrypt_algo = encrypt_text(mod_algo, mod_algo, unseen_key)
