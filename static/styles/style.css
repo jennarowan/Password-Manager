@@ -106,7 +106,7 @@ label {
   border-radius: 10px;
   padding: 20px;
   margin: 50px auto 0;
-  word-break: break-all;
+  word-wrap: break-word;
   width: 400px;
   color: #333; /* Dark gray text color for the entire container */
 }
