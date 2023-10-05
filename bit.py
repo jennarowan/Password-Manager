@@ -125,6 +125,7 @@ def generate_decryption_keys(user, password, key):
     db.session.add(new_key)
     db.session.commit() 
 
+
 def update_master_pass_unseen_key(user_id, master_key):
     unseen_key = unlock_decrpytion('two', master_key)
 
@@ -377,6 +378,7 @@ def update_password(password):
     global GRAND_PASS 
     GRAND_PASS = password
 
+
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 
@@ -406,7 +408,7 @@ def register_page():
 
         # Generate decryptor keys and save them to the db
         generate_decryption_keys(current_user.id, new_password, new_master_key)
-
+        session['last_activity'] = datetime.now(timezone.utc)
         return redirect(url_for('success_page', user=new_username, key=new_master_key))
     
     return render_template('register.html', timestamp=current_time(), title='CMST 495 - BitWizards')
@@ -634,6 +636,8 @@ def modify_password():
         og_pass = request.args.get('password')
         og_id = request.args.get('record_id')
         og_algo = request.args.get('algorithm')
+        og_url = request.args.get('given_url')
+        og_notes = request.args.get('notes')
 
     if request.method == 'POST':
 
@@ -642,7 +646,7 @@ def modify_password():
         mod_user = request.form.get('username')
         mod_pass = request.form.get('password')
         mod_algo = request.form.get('algorithm')
-        mod_url = request.form.get('url')
+        mod_url = request.form.get('given_url')
         mod_notes = request.form.get('notes')
 
         if 'modify' in request.form:
@@ -683,17 +687,19 @@ def modify_password():
 
     return render_template('ModifyPassword.html', application=og_title,
                            username=og_user, record_id=og_id, password=og_pass,
-                           algorithm=og_algo, timestamp=current_time(), title='Modify Entry')
+                           algorithm=og_algo, given_url=og_url, notes=og_notes,
+                           timestamp=current_time(), title='Modify Entry')
 
 
 @login_required
 @bitwiz.before_request
 def before_request():
     """Checks user's last activity, and logs out after inactivity."""
-    if current_user.is_authenticated:
+    logged_in = current_user.is_authenticated
+    if logged_in:
         session.permanent = True
         last_activity_time = session.get('last_activity')
-        if 'last_activity' in session:
+        if 'last_activity' in session and not None:
             curr_time = datetime.now(timezone.utc)
             time_diff = curr_time - last_activity_time
             if time_diff.total_seconds() > 600:
@@ -702,7 +708,6 @@ def before_request():
                 return redirect(url_for('login'))
         else:
             session['last_activity'] = datetime.now(timezone.utc)
-        session['last_activity'] = datetime.now(timezone.utc)
 
 
 @bitwiz.route('/logout')
