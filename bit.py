@@ -636,6 +636,8 @@ def modify_password():
         og_pass = request.args.get('password')
         og_id = request.args.get('record_id')
         og_algo = request.args.get('algorithm')
+        og_url = request.args.get('given_url')
+        og_notes = request.args.get('notes')
 
     if request.method == 'POST':
 
@@ -644,7 +646,7 @@ def modify_password():
         mod_user = request.form.get('username')
         mod_pass = request.form.get('password')
         mod_algo = request.form.get('algorithm')
-        mod_url = request.form.get('url')
+        mod_url = request.form.get('given_url')
         mod_notes = request.form.get('notes')
 
         if 'modify' in request.form:
@@ -685,7 +687,8 @@ def modify_password():
 
     return render_template('ModifyPassword.html', application=og_title,
                            username=og_user, record_id=og_id, password=og_pass,
-                           algorithm=og_algo, timestamp=current_time(), title='Modify Entry')
+                           algorithm=og_algo, given_url=og_url, notes=og_notes,
+                           timestamp=current_time(), title='Modify Entry')
 
 
 @login_required
