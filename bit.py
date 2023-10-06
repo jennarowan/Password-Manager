@@ -375,13 +375,6 @@ def generate_password(uppercase, lowercase, numbers, symbols, length):
     return securepassword
 
 
-#def update_password(password):
-#    """Updates the global password key variables with the provided password."""
-#
-#    global GRAND_PASS 
-#    GRAND_PASS = password
-
-
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 
@@ -433,7 +426,6 @@ def login():
     """Renders the login page, and handles the user authentication."""
     if request.method == 'POST':
         # Get values entered in login
-
         username = request.form['username']
         password = request.form['password']
 
@@ -644,7 +636,6 @@ def modify_password():
     if request.method == 'POST':
 
         mod_id = int(request.form.get('record_id'))
-        # mod_title = request.form.get('title')
         mod_user = request.form.get('username')
         mod_pass = request.form.get('password')
         mod_algo = request.form.get('algorithm')
@@ -658,7 +649,6 @@ def modify_password():
             encrypt_algo = encrypt_text(mod_algo, mod_algo, unseen_key)
 
             if update_pass:
-                # update_pass.title = mod_title
                 update_pass.app_user = mod_user
                 update_pass.encrypted_password = encrypt_pass
                 update_pass.associated_url = mod_url
@@ -725,4 +715,4 @@ def logout():
 login_manager.init_app(bitwiz)
 
 if __name__ == '__main__':
-    bitwiz.run(debug=True)  # TESTLINE
+    bitwiz.run(debug=True) 
