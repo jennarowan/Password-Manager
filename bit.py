@@ -4,8 +4,8 @@ Authors: BitWizards(Kelvin Rodriguez, Shamar Barnes, Melissa Froh, Jeffrey Caule
 Project: CMSC 495 Capstone, Comprehensive Password Manager
 
 Uses a flask environment to create a secure web application for generating and managing user's login
-information for various applications. The user's can generate different passwords, and add, edit, 
-delete, and modify their passwords in the integrated SQLAlchemy database. The user will need to 
+information for various applications. The user's can generate different passwords, and add, edit,
+delete, and modify their passwords in the integrated SQLAlchemy database. The user will need to
 verify their account information before accessing their information.
 
 """
@@ -14,8 +14,8 @@ from os import path
 import base64
 import secrets
 import string
-import time
 from datetime import datetime, timezone
+from time import sleep
 import bcrypt
 
 from flask import Flask, render_template, redirect, url_for, request, flash, session
@@ -24,7 +24,6 @@ from flask_limiter.util import get_remote_address
 from flask_login import login_user, login_required
 from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from time import sleep
 from Crypto.Cipher import AES
 from Crypto.Cipher import DES
 from Crypto.Cipher import CAST
@@ -58,7 +57,7 @@ class User(UserMixin, db.Model):
     password_recovery_question = db.Column(db.String(300))
     password_recovery_answer = db.Column(db.String(100))
 
-    def __init__(self, username, encrypted_password, master_key, 
+    def __init__(self, username, encrypted_password, master_key, # pylint: disable=too-many-arguments
                  password_recovery_question, password_recovery_answer):
         self.username = username
         self.encrypted_password = bcrypt.hashpw(encrypted_password.encode(), bcrypt.gensalt())
@@ -67,7 +66,7 @@ class User(UserMixin, db.Model):
         self.password_recovery_answer = password_recovery_answer
 
 
-class PasswordEntry(db.Model):
+class PasswordEntry(db.Model): # pylint: disable=too-many-instance-attributes disable=too-few-public-methods
     """Creates the PasswordEntry table in the database."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
@@ -80,7 +79,7 @@ class PasswordEntry(db.Model):
     date_created = db.Column(db.DateTime)
     date_modified = db.Column(db.DateTime)
 
-    def __init__(self, user_id, title, app_user, password, encryption_method, associated_url,
+    def __init__(self, user_id, title, app_user, password, encryption_method, associated_url, # pylint: disable=too-many-arguments
                  notes, date_created, date_modified):
         self.user_id = user_id
         self.title = title
@@ -93,7 +92,7 @@ class PasswordEntry(db.Model):
         self.date_modified = date_modified
 
 
-class EncryptionHandler(db.Model):
+class EncryptionHandler(db.Model): # pylint: disable=too-few-public-methods
     """Creates the EncryptionHandler table in the database."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
@@ -112,23 +111,26 @@ with bitwiz.app_context():
 
 
 def generate_random_key():
+    """Generates a random key for the user's master password."""
     key_format = string.ascii_uppercase + string.ascii_lowercase + string.digits
     recovery_key = ''.join(secrets.choice(key_format) for i in range(8))
     return recovery_key
 
- 
+
 def generate_decryption_keys(user, password, key):
+    """Generates the decryption keys for the user's master password."""
     unseen_key = generate_random_key()
 
     enc_password = encrypt_text(unseen_key, 'AES', password)
     enc_masterkey = encrypt_text(unseen_key, 'AES', key)
 
     new_key = EncryptionHandler(user, enc_password, enc_masterkey)
-    db.session.add(new_key)
-    db.session.commit() 
+    db.session.add(new_key) # pylint: disable=no-member
+    db.session.commit() # pylint: disable=no-member
 
 
 def update_master_pass_unseen_key(user_id, master_key):
+    """Updates the master password's decryption key."""
     unseen_key = unlock_decrpytion('two', master_key)
 
     new_key = EncryptionHandler.query.filter_by(user_id=user_id).first()
@@ -136,10 +138,11 @@ def update_master_pass_unseen_key(user_id, master_key):
 
     new_key.key_one = enc_password
 
-    db.session.commit()
+    db.session.commit() # pylint: disable=no-member
 
 
 def unlock_decrpytion(selection, release_key):
+    """Unlocks the decryption key for the user's master password."""
     keys = EncryptionHandler.query.filter_by(
         user_id=current_user.id).first()
 
@@ -163,8 +166,8 @@ def pad(data):
     """This function will pad the data to ensure it is a multiple of 16 bytes."""
     block_size = 16
     padding_length = block_size - (len(data) % block_size)
-    padding = bytes([padding_length]) * padding_length
-    return data + padding
+    padding_result = bytes([padding_length]) * padding_length
+    return data + padding_result
 
 
 def unpad(data):
@@ -177,8 +180,8 @@ def pad_des(data):
     """This function will pad the data to ensure it is a multiple of 8 bytes."""
     block_size = 8
     padding_length = block_size - (len(data) % block_size)
-    padding = bytes([padding_length]) * padding_length
-    return data + padding
+    padding_result = bytes([padding_length]) * padding_length
+    return data + padding_result
 
 
 def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
@@ -196,7 +199,6 @@ def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
         # encrypt the message
         encrypted_message = aes_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        return ciphertext
 
     elif algorithm_choice == "DES":
         # DES encryption
@@ -208,15 +210,14 @@ def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
         # encrypt the message
         encrypted_message = des_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
-        return ciphertext
 
     elif algorithm_choice == "Blowfish":
         # Blowfish encryption
-        iv = b'12345678'  # Initialization Vector (IV) - Change as needed
+        init_vector = b'12345678'  # Initialization Vector (IV) - Change as needed
         # Pad the key
         padded_key = str.encode(unlock_key)
         # Create a Blowfish cipher object
-        cipher = Cipher(algorithms.Blowfish(padded_key), modes.CFB(iv))
+        cipher = Cipher(algorithms.Blowfish(padded_key), modes.CFB(init_vector))
         encryptor = cipher.encryptor()
         # Pad the message using PKCS7 padding
         padder = padding.PKCS7(64).padder()
@@ -226,8 +227,6 @@ def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
         encrypted_message = encryptor.update(
             padded_message) + encryptor.finalize()
         ciphertext = base64.b64encode(encrypted_message)
-
-        return ciphertext
 
     elif algorithm_choice == "CAST5":
         # CAST5 encryption
@@ -241,8 +240,8 @@ def encrypt_text(text_to_encrypt, algorithm_choice, unlock_key):
         encrypted_message = cast5_object.encrypt(padded_message)
         ciphertext = base64.b64encode(encrypted_message)
 
-        return ciphertext
-    
+    return ciphertext
+
 
 def aes_decrypt(ciphertext, pass_key):
     """Decrypts and returns plain-text versions of AES."""
@@ -253,7 +252,7 @@ def aes_decrypt(ciphertext, pass_key):
         decrypted_bytes = aes_object.decrypt(decoded)
         decrypted_value = unpad(decrypted_bytes).decode()
         return decrypted_value
-    except:
+    except: # pylint: disable=bare-except
         return 'Error'
 
 
@@ -266,7 +265,7 @@ def des_decrypt(ciphertext, pass_key):
             base64.b64decode(ciphertext))
         decrypted_value = unpad(decrypted_bytes).decode('utf-8')
         return decrypted_value
-    except:
+    except: # pylint: disable=bare-except
         return 'Error'
 
 
@@ -279,26 +278,26 @@ def cast5_decrypt(ciphertext, pass_key):
             base64.b64decode(ciphertext))
         decrypted_value = unpad(decrypted_bytes).decode('utf-8')
         return decrypted_value
-    except:
+    except: # pylint: disable=bare-except
         return 'Error'
 
 
 def blowfish_decrypt(ciphertext, pass_key):
     """Decrypts and returns plain-text versions of Blowfish."""
     try:
-        iv = b'12345678'
+        init_vector = b'12345678'
         padded_key = str.encode(pass_key)
-        blowfish_object = Cipher(algorithms.Blowfish(padded_key), modes.CFB(iv))
+        blowfish_object = Cipher(algorithms.Blowfish(padded_key), modes.CFB(init_vector))
         decryptor = blowfish_object.decryptor()
         encrypted_type = base64.b64decode(ciphertext)
         decrypted_type = decryptor.update(
             encrypted_type) + decryptor.finalize()
-        unpad = padding.PKCS7(64).unpadder()
-        original_type = unpad.update(
-            decrypted_type) + unpad.finalize()
+        unpad_results = padding.PKCS7(64).unpadder()
+        original_type = unpad_results.update(
+            decrypted_type) + unpad_results.finalize()
         decrypted_value = original_type.decode('UTF-8')
         return decrypted_value
-    except:
+    except: # pylint: disable=bare-except
         return 'Error'
 
 
@@ -320,7 +319,7 @@ def decrypt_password(ciphertext, algorithm_choice, choice, release_key):
     return password
 
 
-def decrypt_algorithm_choice(encrypted_algorithm_choice, choice, release_key):
+def decrypt_algorithm_choice(encrypted_algorithm_choice, choice, release_key): # pylint: disable=inconsistent-return-statements
     """
     This function will decrypt the encrypted algorithm choice
     that was used with the stored password.
@@ -329,7 +328,7 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice, choice, release_key):
     correct one is found.
     """
     pass_key = unlock_decrpytion(choice, release_key)
- 
+
     # Check for AES decryption
     if aes_decrypt(encrypted_algorithm_choice, pass_key) == 'AES':
         return 'AES'
@@ -339,9 +338,8 @@ def decrypt_algorithm_choice(encrypted_algorithm_choice, choice, release_key):
     # Check for CAST5 decryption
     if cast5_decrypt(encrypted_algorithm_choice, pass_key) == 'CAST5':
         return 'CAST5'
-    # Check for Blowfish decryption
-    if blowfish_decrypt(encrypted_algorithm_choice, pass_key) == 'Blowfish':
-        return 'Blowfish'
+    # Only Blowfish is left, so return it
+    return 'Blowfish'
 
 
 def generate_password(uppercase, lowercase, numbers, symbols, length):
@@ -382,7 +380,7 @@ login_manager.login_view = 'login'
 @login_manager.user_loader
 def load_user(user_id):
     """Returns the user's id."""
-    return db.session.get(User, user_id)
+    return db.session.get(User, user_id) # pylint: disable=no-member
 
 @bitwiz.route('/register', methods=['POST', 'GET'])
 def register_page():
@@ -397,8 +395,8 @@ def register_page():
         new_master_key = generate_random_key()
 
         new_rec = User(new_username, new_password, new_master_key, new_question, new_answer)
-        db.session.add(new_rec)
-        db.session.commit()
+        db.session.add(new_rec) # pylint: disable=no-member
+        db.session.commit() # pylint: disable=no-member
         login_user(new_rec, remember=True)
         session['grand_pass'] = new_password
 
@@ -406,16 +404,17 @@ def register_page():
         generate_decryption_keys(current_user.id, new_password, new_master_key)
         session['last_activity'] = datetime.now(timezone.utc)
         return redirect(url_for('success_page', user=new_username, key=new_master_key))
-    
+
     return render_template('register.html', timestamp=current_time(), title='CMST 495 - BitWizards')
 
 
 @bitwiz.route('/success')
 def success_page():
+    """Renders the success page, and shows the user their master password."""
     success_user = request.args.get('user')
     success_key = request.args.get('key')
 
-    return render_template('success.html', timestamp=current_time(), user=success_user, 
+    return render_template('success.html', timestamp=current_time(), user=success_user,
                            key=success_key, title='CMST 495 - BitWizards')
 
 
@@ -506,8 +505,8 @@ def pass_entry():
         new_pass = PasswordEntry(curruser_id, app_desc_name, app_user,
                                  encrypt_pass, encrypt_algo, app_url,
                                  app_notes, datetime.now(), datetime.now())
-        db.session.add(new_pass)
-        db.session.commit()
+        db.session.add(new_pass) # pylint: disable=no-member
+        db.session.commit() # pylint: disable=no-member
 
         return redirect(url_for('next_page', user_val=curruser_id))
 
@@ -567,10 +566,10 @@ def answer_question():
         if update_user:
             if bcrypt.checkpw(form_master.encode(), update_user.master_key):
                 if update_user.password_recovery_answer == form_answer:
-                    if form_pass_1 == form_pass_2:
+                    if form_pass_1 == form_pass_2: # pylint: disable=no-else-return
                         update_user.encrypted_password = bcrypt.hashpw(form_pass_1.encode(),
                                                                    bcrypt.gensalt())
-                        db.session.commit()
+                        db.session.commit() # pylint: disable=no-member
 
                         session.pop('last_activity', None)
                         login_user(update_user, remember=True)
@@ -622,7 +621,7 @@ def next_page():
 
 @bitwiz.route('/ModifyPassword', methods=['GET', 'POST'])
 @login_required
-def modify_password():
+def modify_password(): # pylint: disable=too-many-locals
     """Renders the modify password page, and receives stored data the user selected to modify."""
     if request.method == 'GET':
         og_title = request.args.get('title')
@@ -656,7 +655,7 @@ def modify_password():
                 update_pass.date_modified = datetime.now()
                 update_pass.encryption_method = encrypt_algo
 
-                db.session.commit()
+                db.session.commit() # pylint: disable=no-member
                 flash('Password entry modified successfully.')
 
         elif 'delete' in request.form:
@@ -667,8 +666,8 @@ def modify_password():
                 # Check if the password entry belongs to the currently logged-in user
                 if password_entry.user_id == current_user.id:
                     # Delete the password entry from the database
-                    db.session.delete(password_entry)
-                    db.session.commit()
+                    db.session.delete(password_entry) # pylint: disable=no-member
+                    db.session.commit() # pylint: disable=no-member
                     flash('Password entry deleted successfully.')
                 else:
                     flash('Unauthorized to delete this password entry.')
@@ -685,13 +684,13 @@ def modify_password():
 
 @login_required
 @bitwiz.before_request
-def before_request():
+def before_request(): # pylint: disable=inconsistent-return-statements
     """Checks user's last activity, and logs out after inactivity."""
     logged_in = current_user.is_authenticated
     if logged_in:
-        session.permanent = True
+        session.permanent = True # pylint: disable=assigning-non-slot
         last_activity_time = session.get('last_activity')
-        if 'last_activity' in session and not None:
+        if 'last_activity' in session:
             curr_time = datetime.now(timezone.utc)
             time_diff = curr_time - last_activity_time
             if time_diff.total_seconds() > 600:
@@ -715,4 +714,4 @@ def logout():
 login_manager.init_app(bitwiz)
 
 if __name__ == '__main__':
-    bitwiz.run(debug=True) 
+    bitwiz.run(debug=True)
