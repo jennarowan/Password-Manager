@@ -14,6 +14,7 @@ from os import path
 import base64
 import secrets
 import string
+import time
 from datetime import datetime, timezone
 import bcrypt
 
@@ -23,6 +24,7 @@ from flask_limiter.util import get_remote_address
 from flask_login import login_user, login_required
 from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from time import sleep
 from Crypto.Cipher import AES
 from Crypto.Cipher import DES
 from Crypto.Cipher import CAST
@@ -130,7 +132,7 @@ def update_master_pass_unseen_key(user_id, master_key):
     unseen_key = unlock_decrpytion('two', master_key)
 
     new_key = EncryptionHandler.query.filter_by(user_id=user_id).first()
-    enc_password = encrypt_text(unseen_key, 'AES', GRAND_PASS)
+    enc_password = encrypt_text(unseen_key, 'AES', session.get('grand_pass'))
 
     new_key.key_one = enc_password
 
@@ -302,6 +304,7 @@ def blowfish_decrypt(ciphertext, pass_key):
 
 def decrypt_password(ciphertext, algorithm_choice, choice, release_key):
     """This function will decrypt the encrypted password with the chosen algorithm."""
+    sleep(1)
 
     pass_key = unlock_decrpytion(choice, release_key)
 
@@ -372,13 +375,6 @@ def generate_password(uppercase, lowercase, numbers, symbols, length):
     return securepassword
 
 
-def update_password(password):
-    """Updates the global password key variables with the provided password."""
-
-    global GRAND_PASS 
-    GRAND_PASS = password
-
-
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 
@@ -399,12 +395,12 @@ def register_page():
         new_answer = request.form.get('answer')
 
         new_master_key = generate_random_key()
-        update_password(new_password)
 
         new_rec = User(new_username, new_password, new_master_key, new_question, new_answer)
         db.session.add(new_rec)
         db.session.commit()
         login_user(new_rec, remember=True)
+        session['grand_pass'] = new_password
 
         # Generate decryptor keys and save them to the db
         generate_decryption_keys(current_user.id, new_password, new_master_key)
@@ -430,13 +426,12 @@ def login():
     """Renders the login page, and handles the user authentication."""
     if request.method == 'POST':
         # Get values entered in login
-
         username = request.form['username']
         password = request.form['password']
 
         log_user = User.query.filter_by(username=username).first()
 
-        update_password(password)
+        session['grand_pass'] = password
 
         # Check for existing user before logging in
         if log_user:
@@ -502,7 +497,7 @@ def pass_entry():
 
         curruser_id = current_user.id
 
-        unseen_key = unlock_decrpytion('one', GRAND_PASS)
+        unseen_key = unlock_decrpytion('one', session.get('grand_pass'))
 
         # Encrypt password and algorithm
         encrypt_pass = encrypt_text(app_password, app_algorithm, unseen_key)
@@ -579,8 +574,7 @@ def answer_question():
 
                         session.pop('last_activity', None)
                         login_user(update_user, remember=True)
-
-                        update_password(form_pass_1)
+                        session['grand_pass'] = form_pass_1
 
                         update_master_pass_unseen_key(current_user.id, form_master)
 
@@ -615,8 +609,8 @@ def next_page():
         password = record.encrypted_password
         encryption_method = record.encryption_method
 
-        plain_algo = decrypt_algorithm_choice(encryption_method, 'one', GRAND_PASS)
-        plain_text = decrypt_password(password, plain_algo, 'one', GRAND_PASS)
+        plain_algo = decrypt_algorithm_choice(encryption_method, 'one', session.get('grand_pass'))
+        plain_text = decrypt_password(password, plain_algo, 'one', session.get('grand_pass'))
 
         record.plain_text = plain_text
         record.plain_algo = plain_algo
@@ -642,7 +636,6 @@ def modify_password():
     if request.method == 'POST':
 
         mod_id = int(request.form.get('record_id'))
-        # mod_title = request.form.get('title')
         mod_user = request.form.get('username')
         mod_pass = request.form.get('password')
         mod_algo = request.form.get('algorithm')
@@ -650,13 +643,12 @@ def modify_password():
         mod_notes = request.form.get('notes')
 
         if 'modify' in request.form:
-            unseen_key = unlock_decrpytion('one', GRAND_PASS)
+            unseen_key = unlock_decrpytion('one', session.get('grand_pass'))
             encrypt_pass = encrypt_text(mod_pass, mod_algo, unseen_key)
             update_pass = PasswordEntry.query.filter_by(id=mod_id).first()
             encrypt_algo = encrypt_text(mod_algo, mod_algo, unseen_key)
 
             if update_pass:
-                # update_pass.title = mod_title
                 update_pass.app_user = mod_user
                 update_pass.encrypted_password = encrypt_pass
                 update_pass.associated_url = mod_url
@@ -723,4 +715,4 @@ def logout():
 login_manager.init_app(bitwiz)
 
 if __name__ == '__main__':
-    bitwiz.run(debug=True)  # TESTLINE
+    bitwiz.run(debug=True) 
