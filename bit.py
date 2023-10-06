@@ -14,6 +14,7 @@ from os import path
 import base64
 import secrets
 import string
+import time
 from datetime import datetime, timezone
 import bcrypt
 
@@ -23,6 +24,7 @@ from flask_limiter.util import get_remote_address
 from flask_login import login_user, login_required
 from flask_login import logout_user, current_user, LoginManager, UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from time import sleep
 from Crypto.Cipher import AES
 from Crypto.Cipher import DES
 from Crypto.Cipher import CAST
@@ -302,6 +304,7 @@ def blowfish_decrypt(ciphertext, pass_key):
 
 def decrypt_password(ciphertext, algorithm_choice, choice, release_key):
     """This function will decrypt the encrypted password with the chosen algorithm."""
+    sleep(1)
 
     pass_key = unlock_decrpytion(choice, release_key)
 
