@@ -30,7 +30,8 @@ from Crypto.Cipher import CAST
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 
-DB_NAME = "cmsc495.db"  # -- This is used when doing local testing.
+# Identifies our database file.
+DB_NAME = "cmsc495.db"
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
@@ -40,6 +41,7 @@ bitwiz.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Call the db
 db = SQLAlchemy(bitwiz)
 
+""" Limiter is used to regulate time limits on the session. """
 limiter = Limiter(
     get_remote_address,
     app=bitwiz,
@@ -47,7 +49,7 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
-
+# The User class defines the database object that will store individual user details.
 class User(UserMixin, db.Model):
     """Creates the User table in the database."""
     id = db.Column(db.Integer, primary_key=True)
@@ -57,6 +59,7 @@ class User(UserMixin, db.Model):
     password_recovery_question = db.Column(db.String(300))
     password_recovery_answer = db.Column(db.String(100))
 
+    """Initializes a new instance of the class"""
     def __init__(self, username, encrypted_password, master_key, # pylint: disable=too-many-arguments
                  password_recovery_question, password_recovery_answer):
         self.username = username
@@ -66,6 +69,7 @@ class User(UserMixin, db.Model):
         self.password_recovery_answer = password_recovery_answer
 
 
+# The PasswordEntry class defines the database object that will store the user accounts.
 class PasswordEntry(db.Model): # pylint: disable=too-many-instance-attributes disable=too-few-public-methods
     """Creates the PasswordEntry table in the database."""
     id = db.Column(db.Integer, primary_key=True)
@@ -79,6 +83,7 @@ class PasswordEntry(db.Model): # pylint: disable=too-many-instance-attributes di
     date_created = db.Column(db.DateTime)
     date_modified = db.Column(db.DateTime)
 
+    """Initializes a new instance of the class"""
     def __init__(self, user_id, title, app_user, password, encryption_method, associated_url, # pylint: disable=too-many-arguments
                  notes, date_created, date_modified):
         self.user_id = user_id
@@ -91,7 +96,7 @@ class PasswordEntry(db.Model): # pylint: disable=too-many-instance-attributes di
         self.date_created = date_created
         self.date_modified = date_modified
 
-
+# The EncryptionHandler class defines the database object that will store the user accounts.
 class EncryptionHandler(db.Model): # pylint: disable=too-few-public-methods
     """Creates the EncryptionHandler table in the database."""
     id = db.Column(db.Integer, primary_key=True)
@@ -99,6 +104,7 @@ class EncryptionHandler(db.Model): # pylint: disable=too-few-public-methods
     key_one = db.Column(db.String(200), nullable=False)
     key_two = db.Column(db.String(200), nullable=False)
 
+    """Initializes a new instance of the class"""
     def __init__(self, user_id, key_one, key_two):
         self.user_id = user_id
         self.key_one = key_one
@@ -111,7 +117,8 @@ with bitwiz.app_context():
 
 
 def generate_random_key():
-    """Generates a random key for the user's master password."""
+    """Generates a random key for the user's master password.
+    Format is restricted to upper case, lower case, and numeric digits."""
     key_format = string.ascii_uppercase + string.ascii_lowercase + string.digits
     recovery_key = ''.join(secrets.choice(key_format) for i in range(8))
     return recovery_key
@@ -124,6 +131,7 @@ def generate_decryption_keys(user, password, key):
     enc_password = encrypt_text(unseen_key, 'AES', password)
     enc_masterkey = encrypt_text(unseen_key, 'AES', key)
 
+    # Create a new database record and store it.
     new_key = EncryptionHandler(user, enc_password, enc_masterkey)
     db.session.add(new_key) # pylint: disable=no-member
     db.session.commit() # pylint: disable=no-member
@@ -133,11 +141,14 @@ def update_master_pass_unseen_key(user_id, master_key):
     """Updates the master password's decryption key."""
     unseen_key = unlock_decrpytion('two', master_key)
 
+    # Grab the database record.
     new_key = EncryptionHandler.query.filter_by(user_id=user_id).first()
     enc_password = encrypt_text(unseen_key, 'AES', session.get('grand_pass'))
 
+    # Generate a new encrypted password key and store it in the database.
     new_key.key_one = enc_password
 
+    # Write the database chagnes.
     db.session.commit() # pylint: disable=no-member
 
 
@@ -303,6 +314,7 @@ def blowfish_decrypt(ciphertext, pass_key):
 
 def decrypt_password(ciphertext, algorithm_choice, choice, release_key):
     """This function will decrypt the encrypted password with the chosen algorithm."""
+    # Add in a 1 second sleep delay to processing decryption. Gives everything a chance to catch up.
     sleep(1)
 
     pass_key = unlock_decrpytion(choice, release_key)
@@ -372,7 +384,6 @@ def generate_password(uppercase, lowercase, numbers, symbols, length):
     securepassword = ''.join(secrets.choice(alphabet) for i in range(length))
     return securepassword
 
-
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 
@@ -394,6 +405,7 @@ def register_page():
 
         new_master_key = generate_random_key()
 
+        # Generates a new database record based on the entered form data.
         new_rec = User(new_username, new_password, new_master_key, new_question, new_answer)
         db.session.add(new_rec) # pylint: disable=no-member
         db.session.commit() # pylint: disable=no-member
@@ -418,8 +430,8 @@ def success_page():
                            key=success_key, title='CMST 495 - BitWizards')
 
 
-@bitwiz.route('/', methods=['GET', 'POST'])
-@bitwiz.route('/index', methods=['GET', 'POST'])
+@bitwiz.route('/', methods=['GET', 'POST'])       # Accepts traffic sent to the root domain name...
+@bitwiz.route('/index', methods=['GET', 'POST'])  # ...or by specifying index
 @limiter.limit('3/second', override_defaults=False)
 def login():
     """Renders the login page, and handles the user authentication."""
@@ -561,10 +573,14 @@ def answer_question():
         form_pass_2 = request.form['secondPassword']
         form_master = request.form['master_key']
 
+        # Queries the user record
         update_user = User.query.filter_by(username=form_user).first()
 
         if update_user:
+            # Encrypts the master key
             if bcrypt.checkpw(form_master.encode(), update_user.master_key):
+
+                # If security question matches, it will continue on.
                 if update_user.password_recovery_answer == form_answer:
                     if form_pass_1 == form_pass_2: # pylint: disable=no-else-return
                         update_user.encrypted_password = bcrypt.hashpw(form_pass_1.encode(),
