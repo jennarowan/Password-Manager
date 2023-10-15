@@ -1,7 +1,7 @@
 """
 
 Authors: BitWizards(Kelvin Rodriguez, Shamar Barnes, Melissa Froh, Jeffrey Cauley, Jenna Rowan)
-Project: CMSC 495 Capstone, Comprehensive Password Manager
+School Capstone Project: Comprehensive Password Manager
 
 Uses a flask environment to create a secure web application for generating and managing user's login
 information for various applications. The user's can generate different passwords, and add, edit,
@@ -31,7 +31,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 
 # Identifies our database file.
-DB_NAME = "cmsc495.db"
+DB_NAME = "data.db"
 
 bitwiz = Flask(__name__)
 bitwiz.config['SECRET_KEY'] = 'WeAreVeryMagical1357913'
@@ -417,7 +417,7 @@ def register_page():
         session['last_activity'] = datetime.now(timezone.utc)
         return redirect(url_for('success_page', user=new_username, key=new_master_key))
 
-    return render_template('register.html', timestamp=current_time(), title='CMST 495 - BitWizards')
+    return render_template('register.html', timestamp=current_time(), title='BitWizards')
 
 
 @bitwiz.route('/success')
@@ -427,7 +427,7 @@ def success_page():
     success_key = request.args.get('key')
 
     return render_template('success.html', timestamp=current_time(), user=success_user,
-                           key=success_key, title='CMST 495 - BitWizards')
+                           key=success_key, title='BitWizards')
 
 
 @bitwiz.route('/', methods=['GET', 'POST'])       # Accepts traffic sent to the root domain name...
@@ -454,7 +454,7 @@ def login():
         else:
             flash('User Not Found')
 
-    return render_template('index.html', timestamp=current_time(), title='CMST 495 - BitWizards')
+    return render_template('index.html', timestamp=current_time(), title='BitWizards')
 
 
 @bitwiz.route('/PasswordGenerator', methods=['POST', 'GET'])
@@ -479,7 +479,7 @@ def passgeneration():
 
     return render_template('PasswordGenerator.html',
                            passwordOutput=temppassword, timestamp=current_time(),
-                           title='CMST 495 - BitWizards', logged_in=logged_in)
+                           title='BitWizards', logged_in=logged_in)
 
 
 @bitwiz.route('/slider_update', methods=['POST', 'GET'])
@@ -523,7 +523,7 @@ def pass_entry():
         return redirect(url_for('next_page', user_val=curruser_id))
 
     return render_template('PasswordEntry.html', timestamp=current_time(),
-                           title='CMST 495 - BitWizards - Create Password', passed=passed_password)
+                           title='BitWizards - Create Password', passed=passed_password)
 
 
 @bitwiz.route('/PrivacyPolicy', methods=['GET', 'POST'])
